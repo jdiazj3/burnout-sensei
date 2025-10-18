@@ -1,0 +1,240 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Brain, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+
+const questions = [
+  "Me siento emocionalmente agotado/a por mi trabajo.",
+  "Me siento cansado al final de la jornada de trabajo.",
+  "Cuando me levanto por la mañana y me enfrento a otra jornada de trabajo me siento fatigado.",
+  "Tengo facilidad para comprender como se sienten mis alumnos/as.",
+  "Creo que estoy tratando a algunos alumnos/as como si fueran objetos impersonales.",
+  "Siento que trabajar todo el día con alumnos/as supone un gran esfuerzo y me cansa.",
+  "Creo que trato con mucha eficacia los problemas de mis alumnos/as.",
+  "Siento que mi trabajo me está desgastando. Me siento quemado por mi trabajo.",
+  "Creo que con mi trabajo estoy influyendo positivamente en la vida de mis alumnos/as.",
+  "Me he vuelto más insensible con la gente desde que ejerzo la profesión docente.",
+  "Pienso que este trabajo me está endureciendo emocionalmente.",
+  "Me siento con mucha energía en mi trabajo.",
+  "Me siento frustrado/a en mi trabajo.",
+  "Creo que trabajo demasiado.",
+  "No me preocupa realmente lo que les ocurra a algunos de mis alumnos/as.",
+  "Trabajar directamente con alumnos/as me produce estrés.",
+  "Siento que puedo crear con facilidad un clima agradable con mis alumnos/as.",
+  "Me siento motivado después de trabajar en contacto con alumnos/as.",
+  "Creo que consigo muchas cosas valiosas en este trabajo.",
+  "Me siento acabado en mi trabajo, al límite de mis posibilidades.",
+  "En mi trabajo trato los problemas emocionalmente con mucha calma.",
+  "Creo que los alumnos/as me culpan de algunos de sus problemas.",
+];
+
+const responseOptions = [
+  { value: "0", label: "Nunca" },
+  { value: "1", label: "Pocas veces al año o menos" },
+  { value: "2", label: "Una vez al mes o menos" },
+  { value: "3", label: "Unas pocas veces al mes" },
+  { value: "4", label: "Una vez a la semana" },
+  { value: "5", label: "Unas pocas veces a la semana" },
+  { value: "6", label: "Todos los días" },
+];
+
+const Survey = () => {
+  const navigate = useNavigate();
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [responses, setResponses] = useState<Record<number, number>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const progress = ((Object.keys(responses).length) / questions.length) * 100;
+
+  const handleResponseChange = (value: string) => {
+    setResponses({ ...responses, [currentQuestion]: parseInt(value) });
+  };
+
+  const handleNext = () => {
+    if (responses[currentQuestion] !== undefined) {
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        handleSubmit();
+      }
+    } else {
+      toast.error("Por favor selecciona una respuesta");
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
+  };
+
+  const calculateScores = () => {
+    // Emotional Exhaustion: questions 1,2,3,6,8,13,14,16,20 (indices 0,1,2,5,7,12,13,15,19)
+    const emotionalExhaustionIndices = [0, 1, 2, 5, 7, 12, 13, 15, 19];
+    const emotionalExhaustion = emotionalExhaustionIndices.reduce(
+      (sum, idx) => sum + (responses[idx] || 0),
+      0
+    );
+
+    // Depersonalization: questions 5,10,11,15,22 (indices 4,9,10,14,21)
+    const depersonalizationIndices = [4, 9, 10, 14, 21];
+    const depersonalization = depersonalizationIndices.reduce(
+      (sum, idx) => sum + (responses[idx] || 0),
+      0
+    );
+
+    // Personal Accomplishment: questions 4,7,9,12,17,18,19,21 (indices 3,6,8,11,16,17,18,20)
+    const personalAccomplishmentIndices = [3, 6, 8, 11, 16, 17, 18, 20];
+    const personalAccomplishment = personalAccomplishmentIndices.reduce(
+      (sum, idx) => sum + (responses[idx] || 0),
+      0
+    );
+
+    const getLevel = (score: number, low: number, medium: number) => {
+      if (score <= low) return "Bajo";
+      if (score <= medium) return "Medio";
+      return "Alto";
+    };
+
+    const emotionalExhaustionLevel = getLevel(emotionalExhaustion, 18, 26);
+    const depersonalizationLevel = getLevel(depersonalization, 5, 9);
+    const personalAccomplishmentLevel = getLevel(personalAccomplishment, 33, 39);
+
+    // Burnout indicators: High emotional exhaustion (>26), High depersonalization (>9), Low personal accomplishment (<34)
+    const hasBurnoutIndicators =
+      emotionalExhaustion > 26 || depersonalization > 9 || personalAccomplishment < 34;
+
+    return {
+      emotionalExhaustion,
+      emotionalExhaustionLevel,
+      depersonalization,
+      depersonalizationLevel,
+      personalAccomplishment,
+      personalAccomplishmentLevel,
+      hasBurnoutIndicators,
+    };
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+
+    const scores = calculateScores();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast.error("Error: Usuario no autenticado");
+      setSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.from("surveys").insert({
+      user_id: user.id,
+      responses: responses,
+      emotional_exhaustion: scores.emotionalExhaustion,
+      depersonalization: scores.depersonalization,
+      personal_accomplishment: scores.personalAccomplishment,
+      emotional_exhaustion_level: scores.emotionalExhaustionLevel,
+      depersonalization_level: scores.depersonalizationLevel,
+      personal_accomplishment_level: scores.personalAccomplishmentLevel,
+      has_burnout_indicators: scores.hasBurnoutIndicators,
+    });
+
+    if (error) {
+      toast.error("Error al guardar la encuesta: " + error.message);
+    } else {
+      toast.success("¡Encuesta completada exitosamente!");
+      navigate("/dashboard");
+    }
+
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
+      <header className="border-b bg-card shadow-soft">
+        <div className="container mx-auto flex items-center gap-3 px-4 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary">
+            <Brain className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Cuestionario Burnout - MBI</h1>
+            <p className="text-sm text-muted-foreground">
+              Pregunta {currentQuestion + 1} de {questions.length}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto max-w-3xl px-4 py-8">
+        <div className="mb-6">
+          <Progress value={progress} className="h-2" />
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            {Math.round(progress)}% completado
+          </p>
+        </div>
+
+        <Card className="shadow-medium">
+          <CardHeader>
+            <CardTitle className="text-2xl">
+              {currentQuestion + 1}. {questions[currentQuestion]}
+            </CardTitle>
+            <CardDescription>
+              Selecciona la frecuencia con la que experimentas esta situación
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RadioGroup
+              value={responses[currentQuestion]?.toString()}
+              onValueChange={handleResponseChange}
+            >
+              {responseOptions.map((option) => (
+                <div key={option.value} className="flex items-center space-x-3 rounded-lg border p-4 transition-colors hover:bg-accent/50">
+                  <RadioGroupItem value={option.value} id={`option-${option.value}`} />
+                  <Label
+                    htmlFor={`option-${option.value}`}
+                    className="flex-1 cursor-pointer font-normal"
+                  >
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            <div className="flex justify-between pt-6">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentQuestion === 0}
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Anterior
+              </Button>
+              <Button onClick={handleNext} disabled={submitting}>
+                {currentQuestion === questions.length - 1 ? (
+                  submitting ? (
+                    "Enviando..."
+                  ) : (
+                    "Finalizar"
+                  )
+                ) : (
+                  <>
+                    Siguiente
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+};
+
+export default Survey;
