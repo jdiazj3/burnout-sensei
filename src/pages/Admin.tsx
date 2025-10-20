@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, LogOut, Users, FileText, Trash2 } from "lucide-react";
+import { Brain, LogOut, Users, FileText, Trash2, Building2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -49,26 +49,51 @@ const Admin = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalSurveys: 0,
+    surveysWithBurnout: 0,
+    totalCompanies: 0,
+  });
 
   useEffect(() => {
+    checkRole();
     loadData();
   }, []);
+
+  const checkRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      setIsAdmin(roles?.some(r => r.role === "admin") || false);
+      setIsCompanyAdmin(roles?.some(r => r.role === "company_admin") || false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
 
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [profilesData, surveysData, companiesRes] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('surveys').select('*, profiles(full_name)').order('created_at', { ascending: false }),
+      supabase.from('companies').select('id', { count: 'exact', head: true }),
+    ]);
 
-    const { data: surveysData } = await supabase
-      .from('surveys')
-      .select('*, profiles(full_name)')
-      .order('created_at', { ascending: false });
+    if (profilesData.data) setProfiles(profilesData.data);
+    if (surveysData.data) setSurveys(surveysData.data as any);
 
-    if (profilesData) setProfiles(profilesData);
-    if (surveysData) setSurveys(surveysData as any);
+    setStats({
+      totalUsers: profilesData.data?.length || 0,
+      totalSurveys: surveysData.data?.length || 0,
+      surveysWithBurnout: surveysData.data?.filter(s => s.has_burnout_indicators).length || 0,
+      totalCompanies: companiesRes.count || 0,
+    });
 
     setLoading(false);
   };
@@ -135,6 +160,103 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="hover:shadow-medium transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Usuarios
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-primary">{stats.totalUsers}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-medium transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-secondary" />
+                Encuestas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-secondary">{stats.totalSurveys}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-medium transition-shadow border-destructive/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-destructive" />
+                Con Burnout
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-destructive">{stats.surveysWithBurnout}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-medium transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-accent" />
+                Empresas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-accent">{stats.totalCompanies}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {isAdmin && (
+            <>
+              <Card className="cursor-pointer hover:shadow-medium transition-shadow" onClick={() => navigate("/companies")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Gestión de Empresas
+                  </CardTitle>
+                  <CardDescription>Administrar empresas del sistema</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full">Ir a Empresas</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-medium transition-shadow" onClick={() => navigate("/users")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Gestión de Usuarios
+                  </CardTitle>
+                  <CardDescription>Administrar usuarios y asignaciones</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full">Ir a Usuarios</Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {(isAdmin || isCompanyAdmin) && (
+            <Card className="cursor-pointer hover:shadow-medium transition-shadow" onClick={() => navigate("/company-dashboard")}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Dashboard de Resultados
+                </CardTitle>
+                <CardDescription>Ver resultados de evaluaciones</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full">Ver Dashboard</Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         <Tabs defaultValue="surveys" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="surveys">

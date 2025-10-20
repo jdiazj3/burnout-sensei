@@ -6,11 +6,13 @@ import { User } from "@supabase/supabase-js";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireCompanyAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false, requireCompanyAdmin = false }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,15 +22,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
       if (session?.user) {
         setUser(session.user);
         
-        // Check if user is admin
+        // Check user roles
         const { data: roles } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+          .eq('user_id', session.user.id);
         
-        setIsAdmin(!!roles);
+        setIsAdmin(roles?.some(r => r.role === 'admin') || false);
+        setIsCompanyAdmin(roles?.some(r => r.role === 'company_admin') || false);
       }
       
       setLoading(false);
@@ -43,14 +44,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
         const { data: roles } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+          .eq('user_id', session.user.id);
         
-        setIsAdmin(!!roles);
+        setIsAdmin(roles?.some(r => r.role === 'admin') || false);
+        setIsCompanyAdmin(roles?.some(r => r.role === 'company_admin') || false);
       } else {
         setUser(null);
         setIsAdmin(false);
+        setIsCompanyAdmin(false);
       }
     });
 
@@ -70,6 +71,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps)
   }
 
   if (requireAdmin && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requireCompanyAdmin && !isCompanyAdmin && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -8,6 +8,9 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Survey from "./pages/Survey";
 import Admin from "./pages/Admin";
+import CompanyManagement from "./pages/CompanyManagement";
+import UserManagement from "./pages/UserManagement";
+import CompanyDashboard from "./pages/CompanyDashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -43,6 +46,30 @@ const App = () => (
             element={
               <ProtectedRoute requireAdmin>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/companies"
+            element={
+              <ProtectedRoute requireAdmin>
+                <CompanyManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute requireAdmin>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company-dashboard"
+            element={
+              <ProtectedRoute requireCompanyAdmin>
+                <CompanyDashboard />
               </ProtectedRoute>
             }
           />
