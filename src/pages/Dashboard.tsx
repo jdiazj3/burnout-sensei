@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, LogOut, Plus, FileText, Calendar } from "lucide-react";
+import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface Survey {
   id: string;
@@ -116,6 +118,152 @@ const Dashboard = () => {
             Nueva Evaluación
           </Button>
         </div>
+
+        {surveys.length > 1 && (
+          <Card className="mb-8 shadow-medium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Evolución de Burnout
+              </CardTitle>
+              <CardDescription>
+                Seguimiento de tus niveles a lo largo del tiempo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  emotional_exhaustion: {
+                    label: "Agotamiento Emocional",
+                    color: "hsl(var(--chart-1))",
+                  },
+                  depersonalization: {
+                    label: "Despersonalización",
+                    color: "hsl(var(--chart-2))",
+                  },
+                  personal_accomplishment: {
+                    label: "Realización Personal",
+                    color: "hsl(var(--chart-3))",
+                  },
+                }}
+                className="h-[400px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[...surveys].reverse().map((survey) => ({
+                      date: format(new Date(survey.created_at), "dd/MM/yy", { locale: es }),
+                      emotional_exhaustion: survey.emotional_exhaustion,
+                      depersonalization: survey.depersonalization,
+                      personal_accomplishment: survey.personal_accomplishment,
+                    }))}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis 
+                      dataKey="date" 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                    />
+                    <YAxis 
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar 
+                      dataKey="emotional_exhaustion" 
+                      fill="hsl(var(--chart-1))" 
+                      name="Agotamiento Emocional"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="depersonalization" 
+                      fill="hsl(var(--chart-2))" 
+                      name="Despersonalización"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="personal_accomplishment" 
+                      fill="hsl(var(--chart-3))" 
+                      name="Realización Personal"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+              
+              {surveys.length >= 2 && (
+                <div className="mt-6 grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Agotamiento</p>
+                          <p className="text-2xl font-bold">
+                            {surveys[0].emotional_exhaustion - surveys[1].emotional_exhaustion > 0 ? (
+                              <span className="text-destructive">+{surveys[0].emotional_exhaustion - surveys[1].emotional_exhaustion}</span>
+                            ) : (
+                              <span className="text-success">{surveys[0].emotional_exhaustion - surveys[1].emotional_exhaustion}</span>
+                            )}
+                          </p>
+                        </div>
+                        {surveys[0].emotional_exhaustion > surveys[1].emotional_exhaustion ? (
+                          <TrendingUp className="h-8 w-8 text-destructive" />
+                        ) : (
+                          <TrendingDown className="h-8 w-8 text-success" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Despersonalización</p>
+                          <p className="text-2xl font-bold">
+                            {surveys[0].depersonalization - surveys[1].depersonalization > 0 ? (
+                              <span className="text-destructive">+{surveys[0].depersonalization - surveys[1].depersonalization}</span>
+                            ) : (
+                              <span className="text-success">{surveys[0].depersonalization - surveys[1].depersonalization}</span>
+                            )}
+                          </p>
+                        </div>
+                        {surveys[0].depersonalization > surveys[1].depersonalization ? (
+                          <TrendingUp className="h-8 w-8 text-destructive" />
+                        ) : (
+                          <TrendingDown className="h-8 w-8 text-success" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Realización</p>
+                          <p className="text-2xl font-bold">
+                            {surveys[0].personal_accomplishment - surveys[1].personal_accomplishment > 0 ? (
+                              <span className="text-success">+{surveys[0].personal_accomplishment - surveys[1].personal_accomplishment}</span>
+                            ) : (
+                              <span className="text-destructive">{surveys[0].personal_accomplishment - surveys[1].personal_accomplishment}</span>
+                            )}
+                          </p>
+                        </div>
+                        {surveys[0].personal_accomplishment > surveys[1].personal_accomplishment ? (
+                          <TrendingUp className="h-8 w-8 text-success" />
+                        ) : (
+                          <TrendingDown className="h-8 w-8 text-destructive" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {surveys.length === 0 ? (
           <Card className="shadow-medium">

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, ArrowLeft, TrendingUp, Users, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -15,6 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface SurveyWithProfile {
   id: string;
@@ -153,6 +155,110 @@ const CompanyDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {surveys.length > 0 && (() => {
+          // Agrupar encuestas por fecha y calcular promedios
+          const surveysByDate = surveys.reduce((acc, survey) => {
+            const date = format(new Date(survey.created_at), "yyyy-MM-dd");
+            if (!acc[date]) {
+              acc[date] = [];
+            }
+            acc[date].push(survey);
+            return acc;
+          }, {} as Record<string, typeof surveys>);
+
+          const chartData = Object.entries(surveysByDate)
+            .map(([date, surveysOnDate]) => ({
+              date: format(new Date(date), "dd/MM/yy", { locale: es }),
+              emotional_exhaustion: Math.round(
+                surveysOnDate.reduce((sum, s) => sum + s.emotional_exhaustion, 0) / surveysOnDate.length
+              ),
+              depersonalization: Math.round(
+                surveysOnDate.reduce((sum, s) => sum + s.depersonalization, 0) / surveysOnDate.length
+              ),
+              personal_accomplishment: Math.round(
+                surveysOnDate.reduce((sum, s) => sum + s.personal_accomplishment, 0) / surveysOnDate.length
+              ),
+            }))
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          return chartData.length > 1 ? (
+            <Card className="mb-8 shadow-medium">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Evolución Promedio de la Empresa
+                </CardTitle>
+                <CardDescription>
+                  Tendencia de los niveles de burnout en el tiempo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    emotional_exhaustion: {
+                      label: "Agotamiento Emocional",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    depersonalization: {
+                      label: "Despersonalización",
+                      color: "hsl(var(--chart-2))",
+                    },
+                    personal_accomplishment: {
+                      label: "Realización Personal",
+                      color: "hsl(var(--chart-3))",
+                    },
+                  }}
+                  className="h-[400px]"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={chartData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis 
+                        dataKey="date" 
+                        className="text-xs"
+                        tick={{ fill: 'hsl(var(--foreground))' }}
+                      />
+                      <YAxis 
+                        className="text-xs"
+                        tick={{ fill: 'hsl(var(--foreground))' }}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                      <Line 
+                        type="monotone"
+                        dataKey="emotional_exhaustion" 
+                        stroke="hsl(var(--chart-1))" 
+                        name="Agotamiento Emocional"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                      />
+                      <Line 
+                        type="monotone"
+                        dataKey="depersonalization" 
+                        stroke="hsl(var(--chart-2))" 
+                        name="Despersonalización"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                      />
+                      <Line 
+                        type="monotone"
+                        dataKey="personal_accomplishment" 
+                        stroke="hsl(var(--chart-3))" 
+                        name="Realización Personal"
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          ) : null;
+        })()}
+
         <div className="mb-8 grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
