@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, Users, Shield } from "lucide-react";
+import { Brain, ArrowLeft, Users, Shield, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -124,6 +124,59 @@ const UserManagement = () => {
     }
   };
 
+  const handleAddRole = async (userId: string, role: string) => {
+    const roleTyped = role as "admin" | "company_admin" | "user";
+    
+    // Verificar si el usuario ya tiene ese rol
+    const { data: existingRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", roleTyped);
+
+    if (existingRoles && existingRoles.length > 0) {
+      toast.error("El usuario ya tiene este rol");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role: roleTyped });
+
+    if (error) {
+      toast.error("Error al agregar rol");
+      console.error(error);
+    } else {
+      toast.success("Rol agregado exitosamente");
+      loadData();
+    }
+  };
+
+  const handleRemoveRole = async (userId: string, role: string) => {
+    const roleTyped = role as "admin" | "company_admin" | "user";
+    
+    // No permitir eliminar el último rol
+    const profile = profiles.find(p => p.user_id === userId);
+    if (profile && profile.user_roles.length === 1) {
+      toast.error("No se puede eliminar el único rol del usuario");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", roleTyped);
+
+    if (error) {
+      toast.error("Error al eliminar rol");
+      console.error(error);
+    } else {
+      toast.success("Rol eliminado exitosamente");
+      loadData();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -179,6 +232,7 @@ const UserManagement = () => {
                     <TableHead>Roles</TableHead>
                     <TableHead>Empresa</TableHead>
                     {isAdmin && <TableHead>Asignar Empresa</TableHead>}
+                    {isAdmin && <TableHead>Asignar Rol</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -192,9 +246,21 @@ const UserManagement = () => {
                         <div className="flex gap-1 flex-wrap">
                           {profile.user_roles && profile.user_roles.length > 0 ? (
                             profile.user_roles.map((ur, idx) => (
-                              <Badge key={idx} variant={ur.role === 'admin' ? 'default' : 'secondary'}>
+                              <Badge 
+                                key={idx} 
+                                variant={ur.role === 'admin' ? 'default' : 'secondary'}
+                                className="group"
+                              >
                                 <Shield className="mr-1 h-3 w-3" />
                                 {ur.role}
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => handleRemoveRole(profile.user_id, ur.role)}
+                                    className="ml-1 hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                )}
                               </Badge>
                             ))
                           ) : (
@@ -229,6 +295,23 @@ const UserManagement = () => {
                                   {company.name}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
+                      {isAdmin && (
+                        <TableCell>
+                          <Select
+                            value=""
+                            onValueChange={(value) => handleAddRole(profile.user_id, value)}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Agregar rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="company_admin">Company Admin</SelectItem>
+                              <SelectItem value="user">User</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>
