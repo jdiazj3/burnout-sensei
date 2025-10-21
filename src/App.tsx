@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import CompanyManagement from "./pages/CompanyManagement";
 import UserManagement from "./pages/UserManagement";
 import CompanyDashboard from "./pages/CompanyDashboard";
+import Recommendations from "./pages/Recommendations";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -38,6 +39,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Survey />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recommendations"
+            element={
+              <ProtectedRoute>
+                <Recommendations />
               </ProtectedRoute>
             }
           />

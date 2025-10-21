@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -113,10 +113,16 @@ const Dashboard = () => {
             <h2 className="text-3xl font-bold">Mis Evaluaciones</h2>
             <p className="text-muted-foreground">Historial de encuestas completadas</p>
           </div>
-          <Button onClick={() => navigate("/survey")} size="lg">
-            <Plus className="mr-2 h-5 w-5" />
-            Nueva Evaluación
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={() => navigate("/recommendations")} variant="outline" size="lg">
+              <Lightbulb className="mr-2 h-5 w-5" />
+              Ver Recomendaciones
+            </Button>
+            <Button onClick={() => navigate("/survey")} size="lg">
+              <Plus className="mr-2 h-5 w-5" />
+              Nueva Evaluación
+            </Button>
+          </div>
         </div>
 
         {surveys.length > 1 && (
