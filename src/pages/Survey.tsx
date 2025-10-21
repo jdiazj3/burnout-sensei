@@ -181,7 +181,7 @@ const Survey = () => {
 
         <Card className="shadow-medium">
           <CardHeader>
-            <CardTitle className="text-2xl">
+            <CardTitle key={currentQuestion} className="text-2xl animate-fade-in">
               {currentQuestion + 1}. {questions[currentQuestion]}
             </CardTitle>
             <CardDescription>
@@ -190,8 +190,10 @@ const Survey = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <RadioGroup
+              key={currentQuestion}
               value={responses[currentQuestion]?.toString()}
               onValueChange={handleResponseChange}
+              className="animate-fade-in"
             >
               {responseOptions.map((option) => (
                 <div key={option.value} className="flex items-center space-x-3 rounded-lg border p-4 transition-colors hover:bg-accent/50">
