@@ -25,6 +25,7 @@ import {
 interface Profile {
   id: string;
   full_name: string;
+  email: string | null;
   user_id: string;
   company_id: string | null;
   companies: {
@@ -174,6 +175,7 @@ const UserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Roles</TableHead>
                     <TableHead>Empresa</TableHead>
                     {isAdmin && <TableHead>Asignar Empresa</TableHead>}
@@ -183,6 +185,9 @@ const UserManagement = () => {
                   {profiles.map((profile) => (
                     <TableRow key={profile.id}>
                       <TableCell className="font-medium">{profile.full_name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {profile.email || <span className="text-muted-foreground">Sin email</span>}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {profile.user_roles && profile.user_roles.length > 0 ? (
