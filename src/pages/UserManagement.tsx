@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, Users } from "lucide-react";
+import { Brain, ArrowLeft, Users, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Table,
@@ -29,6 +30,9 @@ interface Profile {
   companies: {
     name: string;
   } | null;
+  user_roles: {
+    role: string;
+  }[];
 }
 
 interface Company {
@@ -61,6 +65,7 @@ const UserManagement = () => {
   };
 
   const loadData = async () => {
+    // Cargar profiles y companies
     const [profilesRes, companiesRes] = await Promise.all([
       supabase
         .from("profiles")
@@ -75,8 +80,22 @@ const UserManagement = () => {
     if (profilesRes.error) {
       toast.error("Error al cargar usuarios");
       console.error(profilesRes.error);
-    } else {
-      setProfiles(profilesRes.data || []);
+    } else if (profilesRes.data) {
+      // Cargar roles para cada usuario
+      const profilesWithRoles = await Promise.all(
+        profilesRes.data.map(async (profile) => {
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", profile.user_id);
+          
+          return {
+            ...profile,
+            user_roles: roles || []
+          };
+        })
+      );
+      setProfiles(profilesWithRoles);
     }
 
     if (companiesRes.error) {
@@ -155,6 +174,7 @@ const UserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
+                    <TableHead>Roles</TableHead>
                     <TableHead>Empresa</TableHead>
                     {isAdmin && <TableHead>Asignar Empresa</TableHead>}
                   </TableRow>
@@ -163,6 +183,20 @@ const UserManagement = () => {
                   {profiles.map((profile) => (
                     <TableRow key={profile.id}>
                       <TableCell className="font-medium">{profile.full_name}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {profile.user_roles && profile.user_roles.length > 0 ? (
+                            profile.user_roles.map((ur, idx) => (
+                              <Badge key={idx} variant={ur.role === 'admin' ? 'default' : 'secondary'}>
+                                <Shield className="mr-1 h-3 w-3" />
+                                {ur.role}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Sin roles</span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {profile.companies?.name || (
                           <span className="text-muted-foreground">Sin asignar</span>
