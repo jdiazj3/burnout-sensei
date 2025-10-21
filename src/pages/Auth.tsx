@@ -21,16 +21,32 @@ const Auth = () => {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
       toast.error("Error al iniciar sesión: " + error.message);
-    } else {
+    } else if (data.user) {
+      // Check user roles to redirect accordingly
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id);
+
+      const isAdmin = roles?.some(r => r.role === 'admin');
+      const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
+
       toast.success("¡Sesión iniciada exitosamente!");
-      navigate("/dashboard");
+      
+      if (isAdmin) {
+        navigate("/admin");
+      } else if (isCompanyAdmin) {
+        navigate("/company-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     }
 
     setLoading(false);
@@ -45,7 +61,7 @@ const Auth = () => {
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -58,9 +74,25 @@ const Auth = () => {
 
     if (error) {
       toast.error("Error al registrarse: " + error.message);
-    } else {
+    } else if (data.user) {
+      // Check user roles to redirect accordingly
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id);
+
+      const isAdmin = roles?.some(r => r.role === 'admin');
+      const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
+
       toast.success("¡Cuenta creada exitosamente!");
-      navigate("/dashboard");
+      
+      if (isAdmin) {
+        navigate("/admin");
+      } else if (isCompanyAdmin) {
+        navigate("/company-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     }
 
     setLoading(false);
