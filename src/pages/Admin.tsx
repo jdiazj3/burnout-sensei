@@ -77,25 +77,44 @@ const Admin = () => {
   };
 
   const loadData = async () => {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const [profilesData, surveysData, companiesRes] = await Promise.all([
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('surveys').select('*, profiles(full_name)').order('created_at', { ascending: false }),
-      supabase.from('companies').select('id', { count: 'exact', head: true }),
-    ]);
+      const [profilesData, surveysData, companiesRes] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('surveys').select('*, profiles(full_name)').order('created_at', { ascending: false }),
+        supabase.from('companies').select('id', { count: 'exact', head: true }),
+      ]);
 
-    if (profilesData.data) setProfiles(profilesData.data);
-    if (surveysData.data) setSurveys(surveysData.data as any);
+      // Log errors for debugging
+      if (profilesData.error) {
+        console.error('Error loading profiles:', profilesData.error);
+        toast.error('Error al cargar perfiles');
+      }
+      if (surveysData.error) {
+        console.error('Error loading surveys:', surveysData.error);
+        toast.error('Error al cargar encuestas');
+      }
+      if (companiesRes.error) {
+        console.error('Error loading companies:', companiesRes.error);
+        toast.error('Error al cargar empresas');
+      }
 
-    setStats({
-      totalUsers: profilesData.data?.length || 0,
-      totalSurveys: surveysData.data?.length || 0,
-      surveysWithBurnout: surveysData.data?.filter(s => s.has_burnout_indicators).length || 0,
-      totalCompanies: companiesRes.count || 0,
-    });
+      if (profilesData.data) setProfiles(profilesData.data);
+      if (surveysData.data) setSurveys(surveysData.data as any);
 
-    setLoading(false);
+      setStats({
+        totalUsers: profilesData.data?.length || 0,
+        totalSurveys: surveysData.data?.length || 0,
+        surveysWithBurnout: surveysData.data?.filter(s => s.has_burnout_indicators).length || 0,
+        totalCompanies: companiesRes.count || 0,
+      });
+    } catch (error) {
+      console.error('Error loading admin data:', error);
+      toast.error('Error al cargar los datos del panel');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
