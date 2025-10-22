@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
+
+interface Company {
+  id: string;
+  name: string;
+}
 
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
+
+  useEffect(() => {
+    loadCompanies();
+  }, []);
+
+  const loadCompanies = async () => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('id, name')
+      .order('name');
+
+    if (error) {
+      console.error('Error cargando empresas:', error);
+    } else {
+      setCompanies(data || []);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,6 +86,12 @@ const Auth = () => {
     const password = formData.get("password") as string;
     const fullName = formData.get("fullName") as string;
 
+    if (!selectedCompany) {
+      toast.error("Por favor selecciona una empresa");
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -75,6 +106,17 @@ const Auth = () => {
     if (error) {
       toast.error("Error al registrarse: " + error.message);
     } else if (data.user) {
+      // Update profile with company_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ company_id: selectedCompany })
+        .eq('user_id', data.user.id);
+
+      if (profileError) {
+        console.error('Error actualizando perfil:', profileError);
+        toast.error("Error asignando empresa");
+      }
+
       // Check user roles to redirect accordingly
       const { data: roles } = await supabase
         .from('user_roles')
@@ -175,6 +217,21 @@ const Auth = () => {
                     required
                     minLength={6}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-company">Empresa</Label>
+                  <Select value={selectedCompany} onValueChange={setSelectedCompany} required>
+                    <SelectTrigger id="signup-company">
+                      <SelectValue placeholder="Selecciona tu empresa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creando cuenta..." : "Crear Cuenta"}
