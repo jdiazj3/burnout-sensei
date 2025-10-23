@@ -16,9 +16,8 @@ const Index = () => {
           </div>
           
           <h1 className="mb-6 text-5xl font-bold tracking-tight">
-            Sistema de Evaluación
             <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Burnout - MBI
+              Sensei Burnout
             </span>
           </h1>
           
