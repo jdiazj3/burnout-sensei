@@ -1,0 +1,148 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verificar que el usuario sea company_admin
+    const { data: roles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'company_admin')
+      .single();
+
+    if (!roles) {
+      return new Response(JSON.stringify({ error: "No tienes permisos para realizar esta acción" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Obtener la empresa del usuario
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('company_id, companies(name)')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!profile || !profile.company_id) {
+      return new Response(JSON.stringify({ error: "No se encontró la empresa" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    if (!MERCADOPAGO_ACCESS_TOKEN) {
+      throw new Error("MERCADOPAGO_ACCESS_TOKEN no configurado");
+    }
+
+    // Crear preferencia de pago en Mercado Pago
+    const preference = {
+      items: [
+        {
+          title: "100 Encuestas de Burnout - Sensei Burnout",
+          description: "Paquete de 100 evaluaciones de burnout para tu empresa",
+          quantity: 1,
+          unit_price: 50000, // $50,000 COP
+          currency_id: "COP"
+        }
+      ],
+      payer: {
+        email: user.email,
+      },
+      back_urls: {
+        success: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
+        failure: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
+        pending: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
+      },
+      auto_return: "approved",
+      notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
+      metadata: {
+        company_id: profile.company_id,
+        user_id: user.id,
+      },
+    };
+
+    console.log('Creando preferencia de pago:', preference);
+
+    const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(preference),
+    });
+
+    if (!mpResponse.ok) {
+      const errorText = await mpResponse.text();
+      console.error("Error de Mercado Pago:", mpResponse.status, errorText);
+      throw new Error(`Error de Mercado Pago: ${mpResponse.status}`);
+    }
+
+    const preferenceData = await mpResponse.json();
+    console.log('Preferencia creada:', preferenceData.id);
+
+    // Registrar el pago pendiente en la base de datos
+    const { error: insertError } = await supabaseClient
+      .from('payment_history')
+      .insert({
+        company_id: profile.company_id,
+        mercadopago_preference_id: preferenceData.id,
+        amount: 50000,
+        currency: 'COP',
+        status: 'pending',
+        surveys_purchased: 100,
+      });
+
+    if (insertError) {
+      console.error('Error al registrar pago:', insertError);
+    }
+
+    return new Response(JSON.stringify({ 
+      init_point: preferenceData.init_point,
+      preference_id: preferenceData.id 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error en create-payment-preference:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Error desconocido" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

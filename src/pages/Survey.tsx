@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Brain, ChevronLeft, ChevronRight } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Brain, ChevronLeft, ChevronRight, CreditCard, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -57,6 +58,59 @@ const Survey = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [responses, setResponses] = useState<Record<number, number>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [checkingLimits, setCheckingLimits] = useState(true);
+  const [canCreateSurvey, setCanCreateSurvey] = useState(false);
+  const [limitInfo, setLimitInfo] = useState<{
+    availableSurveys: number;
+    reason: string;
+  } | null>(null);
+  const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
+
+  useEffect(() => {
+    checkSurveyLimit();
+  }, []);
+
+  const checkSurveyLimit = async () => {
+    try {
+      setCheckingLimits(true);
+      
+      // Verificar si es company_admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const isAdmin = roles?.some(r => r.role === "company_admin");
+      setIsCompanyAdmin(isAdmin || false);
+
+      // Verificar límites
+      const { data, error } = await supabase.functions.invoke("check-survey-limit");
+
+      if (error) {
+        console.error("Error verificando límites:", error);
+        toast.error("Error al verificar límites de encuestas");
+        return;
+      }
+
+      setCanCreateSurvey(data.canCreate);
+      setLimitInfo({
+        availableSurveys: data.availableSurveys,
+        reason: data.reason,
+      });
+
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al verificar límites");
+    } finally {
+      setCheckingLimits(false);
+    }
+  };
 
   const progress = ((Object.keys(responses).length) / questions.length) * 100;
 
@@ -130,6 +184,11 @@ const Survey = () => {
   };
 
   const handleSubmit = async () => {
+    if (!canCreateSurvey) {
+      toast.error("Has alcanzado el límite de encuestas disponibles");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -180,6 +239,41 @@ const Survey = () => {
       if (error) {
         toast.error("Error al guardar la encuesta: " + error.message);
       } else {
+        // Actualizar límites después de crear encuesta
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (profile?.company_id) {
+          const { data: limits } = await supabase
+            .from("company_survey_limits")
+            .select("*")
+            .eq("company_id", profile.company_id)
+            .single();
+
+          if (limits) {
+            if (limits.is_trial_active) {
+              // Decrementar encuestas de prueba
+              await supabase
+                .from("company_survey_limits")
+                .update({
+                  trial_surveys_remaining: Math.max(0, limits.trial_surveys_remaining - 1),
+                })
+                .eq("company_id", profile.company_id);
+            } else {
+              // Incrementar encuestas usadas
+              await supabase
+                .from("company_survey_limits")
+                .update({
+                  surveys_used: limits.surveys_used + 1,
+                })
+                .eq("company_id", profile.company_id);
+            }
+          }
+        }
+
         toast.success("¡Encuesta completada exitosamente!");
         navigate("/dashboard");
       }
@@ -208,68 +302,112 @@ const Survey = () => {
       </header>
 
       <main className="container mx-auto max-w-3xl px-4 py-8">
-        <div className="mb-6">
-          <Progress value={progress} className="h-2" />
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            {Math.round(progress)}% completado
-          </p>
-        </div>
+        {checkingLimits ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Verificando disponibilidad...</p>
+          </div>
+        ) : !canCreateSurvey ? (
+          <Card className="shadow-medium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-6 w-6" />
+                Límite de Encuestas Alcanzado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {limitInfo?.reason === "trial_exhausted" 
+                    ? "Has agotado tus 5 encuestas de prueba gratuitas."
+                    : "Has utilizado todas tus encuestas disponibles."}
+                </AlertDescription>
+              </Alert>
 
-        <Card className="shadow-medium">
-          <CardHeader>
-            <CardTitle key={currentQuestion} className="text-2xl animate-fade-in">
-              {currentQuestion + 1}. {questions[currentQuestion]}
-            </CardTitle>
-            <CardDescription>
-              Selecciona la frecuencia con la que experimentas esta situación
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <RadioGroup
-              key={currentQuestion}
-              value={responses[currentQuestion]?.toString()}
-              onValueChange={handleResponseChange}
-              className="animate-fade-in"
-            >
-              {responseOptions.map((option) => (
-                <div key={option.value} className="flex items-center space-x-3 rounded-lg border p-4 transition-colors hover:bg-accent/50">
-                  <RadioGroupItem value={option.value} id={`option-${option.value}`} />
-                  <Label
-                    htmlFor={`option-${option.value}`}
-                    className="flex-1 cursor-pointer font-normal"
-                  >
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+              <div className="text-center space-y-4 py-4">
+                <p className="text-muted-foreground">
+                  Encuestas disponibles: <strong>{limitInfo?.availableSurveys || 0}</strong>
+                </p>
 
-            <div className="flex justify-between pt-6">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentQuestion === 0}
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Anterior
-              </Button>
-              <Button onClick={handleNext} disabled={submitting}>
-                {currentQuestion === questions.length - 1 ? (
-                  submitting ? (
-                    "Enviando..."
-                  ) : (
-                    "Finalizar"
-                  )
-                ) : (
-                  <>
-                    Siguiente
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </>
+                {isCompanyAdmin && (
+                  <Button onClick={() => navigate("/payment-dashboard")} size="lg">
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Comprar Más Encuestas
+                  </Button>
                 )}
-              </Button>
+
+                <Button variant="outline" onClick={() => navigate("/dashboard")} className="ml-2">
+                  Volver al Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="mb-6">
+              <Progress value={progress} className="h-2" />
+              <p className="mt-2 text-center text-sm text-muted-foreground">
+                {Math.round(progress)}% completado
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            <Card className="shadow-medium">
+              <CardHeader>
+                <CardTitle key={currentQuestion} className="text-2xl animate-fade-in">
+                  {currentQuestion + 1}. {questions[currentQuestion]}
+                </CardTitle>
+                <CardDescription>
+                  Selecciona la frecuencia con la que experimentas esta situación
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <RadioGroup
+                  key={currentQuestion}
+                  value={responses[currentQuestion]?.toString()}
+                  onValueChange={handleResponseChange}
+                  className="animate-fade-in"
+                >
+                  {responseOptions.map((option) => (
+                    <div key={option.value} className="flex items-center space-x-3 rounded-lg border p-4 transition-colors hover:bg-accent/50">
+                      <RadioGroupItem value={option.value} id={`option-${option.value}`} />
+                      <Label
+                        htmlFor={`option-${option.value}`}
+                        className="flex-1 cursor-pointer font-normal"
+                      >
+                        {option.label}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+
+                <div className="flex justify-between pt-6">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentQuestion === 0}
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <Button onClick={handleNext} disabled={submitting}>
+                    {currentQuestion === questions.length - 1 ? (
+                      submitting ? (
+                        "Enviando..."
+                      ) : (
+                        "Finalizar"
+                      )
+                    ) : (
+                      <>
+                        Siguiente
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </main>
     </div>
   );

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { Brain, ArrowLeft, TrendingUp, Users, AlertTriangle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -147,10 +147,16 @@ const CompanyDashboard = () => {
               <p className="text-sm text-muted-foreground">{companyName}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => navigate("/admin")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate("/payment-dashboard")}>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Gestión de Pagos
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/admin")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Button>
+          </div>
         </div>
       </header>
 

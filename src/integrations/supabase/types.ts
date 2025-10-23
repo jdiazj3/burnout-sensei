@@ -35,6 +35,100 @@ export type Database = {
         }
         Relationships: []
       }
+      company_survey_limits: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          is_trial_active: boolean
+          surveys_included: number
+          surveys_used: number
+          trial_surveys_remaining: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          is_trial_active?: boolean
+          surveys_included?: number
+          surveys_used?: number
+          trial_surveys_remaining?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_trial_active?: boolean
+          surveys_included?: number
+          surveys_used?: number
+          trial_surveys_remaining?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_survey_limits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_history: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          id: string
+          mercadopago_payment_id: string | null
+          mercadopago_preference_id: string | null
+          payment_date: string | null
+          payment_method: string | null
+          status: string
+          surveys_purchased: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          status?: string
+          surveys_purchased?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          status?: string
+          surveys_purchased?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_id: string | null

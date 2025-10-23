@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import CompanyManagement from "./pages/CompanyManagement";
 import UserManagement from "./pages/UserManagement";
 import CompanyDashboard from "./pages/CompanyDashboard";
+import PaymentDashboard from "./pages/PaymentDashboard";
 import Recommendations from "./pages/Recommendations";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -79,6 +80,14 @@ const App = () => (
             element={
               <ProtectedRoute requireCompanyAdmin>
                 <CompanyDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment-dashboard"
+            element={
+              <ProtectedRoute requireCompanyAdmin>
+                <PaymentDashboard />
               </ProtectedRoute>
             }
           />
