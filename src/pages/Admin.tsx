@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, LogOut, Users, FileText, Trash2, Building2, BarChart3 } from "lucide-react";
+import { Brain, LogOut, Users, FileText, Trash2, Building2, BarChart3, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -39,8 +39,13 @@ interface Survey {
   personal_accomplishment: number;
   personal_accomplishment_level: string;
   has_burnout_indicators: boolean;
+  responses: any;
   profiles: {
     full_name: string;
+    company_id: string;
+    companies: {
+      name: string;
+    } | null;
   };
 }
 
@@ -51,6 +56,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
+  const [expandedSurveys, setExpandedSurveys] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalSurveys: 0,
@@ -82,7 +88,7 @@ const Admin = () => {
 
       const [profilesData, surveysData, companiesRes] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
-        supabase.from('surveys').select('*, profiles(full_name)').order('created_at', { ascending: false }),
+        supabase.from('surveys').select('*, profiles(full_name, company_id, companies(name))').order('created_at', { ascending: false }),
         supabase.from('companies').select('id', { count: 'exact', head: true }),
       ]);
 
@@ -148,6 +154,18 @@ const Admin = () => {
       default:
         return 'text-muted-foreground';
     }
+  };
+
+  const toggleSurveyExpansion = (surveyId: string) => {
+    setExpandedSurveys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(surveyId)) {
+        newSet.delete(surveyId);
+      } else {
+        newSet.add(surveyId);
+      }
+      return newSet;
+    });
   };
 
   if (loading) {
@@ -301,7 +319,9 @@ const Admin = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]"></TableHead>
                         <TableHead>Usuario</TableHead>
+                        <TableHead>Empresa</TableHead>
                         <TableHead>Fecha</TableHead>
                         <TableHead>C. Emocional</TableHead>
                         <TableHead>Despersonalización</TableHead>
@@ -312,59 +332,97 @@ const Admin = () => {
                     </TableHeader>
                     <TableBody>
                       {surveys.map((survey) => (
-                        <TableRow key={survey.id}>
-                          <TableCell className="font-medium">
-                            {survey.profiles?.full_name || 'Usuario'}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(survey.created_at), "dd/MM/yyyy", { locale: es })}
-                          </TableCell>
-                          <TableCell>
-                            <span className={getLevelColor(survey.emotional_exhaustion_level)}>
-                              {survey.emotional_exhaustion} - {survey.emotional_exhaustion_level}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className={getLevelColor(survey.depersonalization_level)}>
-                              {survey.depersonalization} - {survey.depersonalization_level}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className={getLevelColor(survey.personal_accomplishment_level)}>
-                              {survey.personal_accomplishment} - {survey.personal_accomplishment_level}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {survey.has_burnout_indicators ? (
-                              <span className="text-destructive font-medium">Con indicios</span>
-                            ) : (
-                              <span className="text-success font-medium">Sin indicios</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Eliminar encuesta?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. La encuesta será eliminada permanentemente.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteSurvey(survey.id)}>
-                                    Eliminar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                        </TableRow>
+                        <>
+                          <TableRow key={survey.id} className="cursor-pointer hover:bg-accent/50">
+                            <TableCell onClick={() => toggleSurveyExpansion(survey.id)}>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                {expandedSurveys.has(survey.id) ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {survey.profiles?.full_name || 'Usuario'}
+                            </TableCell>
+                            <TableCell>
+                              {survey.profiles?.companies?.name || 'Sin empresa'}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(survey.created_at), "dd/MM/yyyy", { locale: es })}
+                            </TableCell>
+                            <TableCell>
+                              <span className={getLevelColor(survey.emotional_exhaustion_level)}>
+                                {survey.emotional_exhaustion} - {survey.emotional_exhaustion_level}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className={getLevelColor(survey.depersonalization_level)}>
+                                {survey.depersonalization} - {survey.depersonalization_level}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className={getLevelColor(survey.personal_accomplishment_level)}>
+                                {survey.personal_accomplishment} - {survey.personal_accomplishment_level}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {survey.has_burnout_indicators ? (
+                                <span className="text-destructive font-medium">Con indicios</span>
+                              ) : (
+                                <span className="text-success font-medium">Sin indicios</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar encuesta?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta acción no se puede deshacer. La encuesta será eliminada permanentemente.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteSurvey(survey.id)}>
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                          {expandedSurveys.has(survey.id) && (
+                            <TableRow>
+                              <TableCell colSpan={9} className="bg-muted/50 p-6">
+                                <div className="space-y-4">
+                                  <h4 className="font-semibold text-lg mb-3">Respuestas Detalladas</h4>
+                                  <div className="grid gap-3">
+                                    {survey.responses && Object.entries(survey.responses).map(([key, value]: [string, any], index) => (
+                                      <div key={key} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                          <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                                        </div>
+                                        <div className="flex-1">
+                                          <p className="text-sm text-muted-foreground mb-1">Pregunta {index + 1}</p>
+                                          <p className="font-medium">
+                                            Respuesta: <span className="text-primary">{value}</span>
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
                       ))}
                     </TableBody>
                   </Table>
