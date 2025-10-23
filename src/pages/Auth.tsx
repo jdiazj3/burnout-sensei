@@ -9,11 +9,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
+import { z } from "zod";
 
 interface Company {
   id: string;
   name: string;
 }
+
+const loginSchema = z.object({
+  email: z.string().email("Correo electrónico inválido").trim(),
+  password: z.string().min(1, "La contraseña es requerida"),
+});
+
+const signupSchema = z.object({
+  fullName: z.string()
+    .trim()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .max(100, "El nombre es demasiado largo")
+    .regex(/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/, "El nombre solo puede contener letras y espacios"),
+  email: z.string().email("Correo electrónico inválido").trim(),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .regex(/[A-Z]/, "La contraseña debe contener al menos una mayúscula")
+    .regex(/[0-9]/, "La contraseña debe contener al menos un número"),
+  companyId: z.string().uuid("Debes seleccionar una empresa"),
+});
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -42,102 +62,130 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      toast.error("Error al iniciar sesión: " + error.message);
-    } else if (data.user) {
-      // Check user roles to redirect accordingly
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id);
-
-      const isAdmin = roles?.some(r => r.role === 'admin');
-      const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
-
-      toast.success("¡Sesión iniciada exitosamente!");
-      
-      if (isAdmin) {
-        navigate("/admin");
-      } else if (isCompanyAdmin) {
-        navigate("/company-dashboard");
-      } else {
-        navigate("/dashboard");
+      // Validate input
+      const validation = loginSchema.safeParse({ email, password });
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
       }
-    }
 
-    setLoading(false);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: validation.data.email,
+        password: validation.data.password,
+      });
+
+      if (error) {
+        toast.error("Error al iniciar sesión: " + error.message);
+      } else if (data.user) {
+        // Check user roles to redirect accordingly
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id);
+
+        const isAdmin = roles?.some(r => r.role === 'admin');
+        const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
+
+        toast.success("¡Sesión iniciada exitosamente!");
+        
+        if (isAdmin) {
+          navigate("/admin");
+        } else if (isCompanyAdmin) {
+          navigate("/company-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
+      }
+    } catch (error) {
+      toast.error("Error inesperado al iniciar sesión");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const fullName = formData.get("fullName") as string;
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+      const password = formData.get("password") as string;
+      const fullName = formData.get("fullName") as string;
 
-    if (!selectedCompany) {
-      toast.error("Por favor selecciona una empresa");
-      setLoading(false);
-      return;
-    }
+      // Validate input
+      const validation = signupSchema.safeParse({
+        fullName,
+        email,
+        password,
+        companyId: selectedCompany,
+      });
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: validation.data.email,
+        password: validation.data.password,
+        options: {
+          data: {
+            full_name: validation.data.fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
+      });
 
-    if (error) {
-      toast.error("Error al registrarse: " + error.message);
-    } else if (data.user) {
-      // Update profile with company_id
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ company_id: selectedCompany })
-        .eq('user_id', data.user.id);
+      if (error) {
+        toast.error("Error al registrarse: " + error.message);
+      } else if (data.user) {
+        // Update profile with company_id
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ company_id: validation.data.companyId })
+          .eq('user_id', data.user.id);
 
-      if (profileError) {
-        console.error('Error actualizando perfil:', profileError);
-        toast.error("Error asignando empresa");
+        if (profileError) {
+          console.error('Error actualizando perfil:', profileError);
+          toast.error("Error asignando empresa");
+        }
+
+        // Check user roles to redirect accordingly
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id);
+
+        const isAdmin = roles?.some(r => r.role === 'admin');
+        const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
+
+        toast.success("¡Cuenta creada exitosamente!");
+        
+        if (isAdmin) {
+          navigate("/admin");
+        } else if (isCompanyAdmin) {
+          navigate("/company-dashboard");
+        } else {
+          navigate("/dashboard");
+        }
       }
-
-      // Check user roles to redirect accordingly
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id);
-
-      const isAdmin = roles?.some(r => r.role === 'admin');
-      const isCompanyAdmin = roles?.some(r => r.role === 'company_admin');
-
-      toast.success("¡Cuenta creada exitosamente!");
-      
-      if (isAdmin) {
-        navigate("/admin");
-      } else if (isCompanyAdmin) {
-        navigate("/company-dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+    } catch (error) {
+      toast.error("Error inesperado al registrarse");
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

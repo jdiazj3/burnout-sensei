@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Brain, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const questions = [
   "Me siento emocionalmente agotado/a por mi trabajo.",
@@ -43,6 +44,13 @@ const responseOptions = [
   { value: "5", label: "Unas pocas veces a la semana" },
   { value: "6", label: "Todos los días" },
 ];
+
+const surveyResponseSchema = z.object({
+  responses: z.record(z.string(), z.number().int().min(0).max(6)),
+  emotional_exhaustion: z.number().int().min(0).max(54),
+  depersonalization: z.number().int().min(0).max(30),
+  personal_accomplishment: z.number().int().min(0).max(48),
+});
 
 const Survey = () => {
   const navigate = useNavigate();
@@ -124,35 +132,63 @@ const Survey = () => {
   const handleSubmit = async () => {
     setSubmitting(true);
 
-    const scores = calculateScores();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      toast.error("Error: Usuario no autenticado");
+      if (!user) {
+        toast.error("Debes iniciar sesión para enviar la encuesta");
+        navigate("/auth");
+        return;
+      }
+
+      // Validate all questions answered
+      if (Object.keys(responses).length !== questions.length) {
+        toast.error("Por favor responde todas las preguntas antes de enviar");
+        setSubmitting(false);
+        return;
+      }
+
+      const scores = calculateScores();
+
+      // Validate survey data
+      const validation = surveyResponseSchema.safeParse({
+        responses: Object.fromEntries(Object.entries(responses).map(([k, v]) => [k, v])),
+        emotional_exhaustion: scores.emotionalExhaustion,
+        depersonalization: scores.depersonalization,
+        personal_accomplishment: scores.personalAccomplishment,
+      });
+
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error("Datos de encuesta inválidos: " + firstError.message);
+        setSubmitting(false);
+        return;
+      }
+
+      const { error } = await supabase.from("surveys").insert({
+        user_id: user.id,
+        responses: responses,
+        emotional_exhaustion: scores.emotionalExhaustion,
+        depersonalization: scores.depersonalization,
+        personal_accomplishment: scores.personalAccomplishment,
+        emotional_exhaustion_level: scores.emotionalExhaustionLevel,
+        depersonalization_level: scores.depersonalizationLevel,
+        personal_accomplishment_level: scores.personalAccomplishmentLevel,
+        has_burnout_indicators: scores.hasBurnoutIndicators,
+      });
+
+      if (error) {
+        toast.error("Error al guardar la encuesta: " + error.message);
+      } else {
+        toast.success("¡Encuesta completada exitosamente!");
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast.error("Error inesperado al enviar la encuesta");
+      console.error(error);
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    const { error } = await supabase.from("surveys").insert({
-      user_id: user.id,
-      responses: responses,
-      emotional_exhaustion: scores.emotionalExhaustion,
-      depersonalization: scores.depersonalization,
-      personal_accomplishment: scores.personalAccomplishment,
-      emotional_exhaustion_level: scores.emotionalExhaustionLevel,
-      depersonalization_level: scores.depersonalizationLevel,
-      personal_accomplishment_level: scores.personalAccomplishmentLevel,
-      has_burnout_indicators: scores.hasBurnoutIndicators,
-    });
-
-    if (error) {
-      toast.error("Error al guardar la encuesta: " + error.message);
-    } else {
-      toast.success("¡Encuesta completada exitosamente!");
-      navigate("/dashboard");
-    }
-
-    setSubmitting(false);
   };
 
   return (

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, ArrowLeft, Plus, Building2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import {
   Table,
   TableBody,
@@ -29,6 +30,14 @@ interface Company {
   name: string;
   created_at: string;
 }
+
+const companySchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, "El nombre debe tener al menos 2 caracteres")
+    .max(100, "El nombre debe tener máximo 100 caracteres")
+    .regex(/^[a-zA-Z0-9\s\-.áéíóúñÁÉÍÓÚÑ]+$/, "El nombre solo puede contener letras, números, espacios y guiones"),
+});
 
 const CompanyManagement = () => {
   const navigate = useNavigate();
@@ -58,26 +67,49 @@ const CompanyManagement = () => {
   };
 
   const handleCreateCompany = async () => {
-    if (!newCompanyName.trim()) {
-      toast.error("El nombre de la empresa es requerido");
+    const validation = companySchema.safeParse({ name: newCompanyName });
+    
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
     setSubmitting(true);
-    const { error } = await supabase
-      .from("companies")
-      .insert({ name: newCompanyName.trim() });
 
-    if (error) {
-      toast.error("Error al crear empresa");
+    try {
+      // Check for duplicate company name
+      const { data: existing } = await supabase
+        .from("companies")
+        .select("id")
+        .ilike("name", validation.data.name)
+        .single();
+
+      if (existing) {
+        toast.error("Ya existe una empresa con ese nombre");
+        setSubmitting(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("companies")
+        .insert({ name: validation.data.name });
+
+      if (error) {
+        toast.error("Error al crear empresa");
+        console.error(error);
+      } else {
+        toast.success("Empresa creada exitosamente");
+        setNewCompanyName("");
+        setShowDialog(false);
+        loadCompanies();
+      }
+    } catch (error) {
+      toast.error("Error inesperado al crear empresa");
       console.error(error);
-    } else {
-      toast.success("Empresa creada exitosamente");
-      setNewCompanyName("");
-      setShowDialog(false);
-      loadCompanies();
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDeleteCompany = async (id: string, name: string) => {
