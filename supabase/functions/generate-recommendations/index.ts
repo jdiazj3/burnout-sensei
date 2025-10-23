@@ -39,11 +39,6 @@ serve(async (req) => {
     console.log('Usuario autenticado:', user.id);
 
     const { emotionalExhaustion, depersonalization, personalAccomplishment } = await req.json();
-    
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY no está configurada");
-    }
 
     console.log('Generando recomendaciones para:', { emotionalExhaustion, depersonalization, personalAccomplishment });
 
@@ -83,10 +78,9 @@ Las recomendaciones deben ser:
 - En español
 - Adaptadas al nivel detectado (bajo/moderado/alto)`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.lovable.app/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -95,28 +89,13 @@ Las recomendaciones deben ser:
           { role: "system", content: "Eres un experto en salud mental especializado en prevención del burnout. Respondes siempre en formato JSON válido." },
           { role: "user", content: prompt }
         ],
-        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Error de Lovable AI:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Límite de solicitudes excedido. Intenta de nuevo en unos momentos." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Se requiere agregar créditos a tu cuenta de Lovable AI." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
-      throw new Error(`Error de AI Gateway: ${response.status}`);
+      throw new Error(`Error de AI: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
