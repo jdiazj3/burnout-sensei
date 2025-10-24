@@ -68,14 +68,24 @@ const PaymentDashboard = () => {
       }
 
       // Obtener empresa
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("company_id, companies(name)")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        throw profileError;
+      }
 
       if (!profile || !profile.company_id) {
-        throw new Error("No se encontró la empresa");
+        toast({
+          title: "Configuración incompleta",
+          description: "Tu perfil no está asociado a una empresa",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+        return;
       }
 
       setCompanyName((profile as any).companies?.name || "");
@@ -85,7 +95,7 @@ const PaymentDashboard = () => {
         .from("company_survey_limits")
         .select("*")
         .eq("company_id", profile.company_id)
-        .single();
+        .maybeSingle();
 
       if (limitsError) throw limitsError;
       setLimits(limitsData);

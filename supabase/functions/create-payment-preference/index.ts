@@ -36,12 +36,20 @@ serve(async (req) => {
     }
 
     // Verificar que el usuario sea company_admin
-    const { data: roles } = await supabaseClient
+    const { data: roles, error: rolesError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'company_admin')
-      .single();
+      .maybeSingle();
+
+    if (rolesError) {
+      console.error('Error verificando roles:', rolesError);
+      return new Response(JSON.stringify({ error: "Error verificando permisos" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!roles) {
       return new Response(JSON.stringify({ error: "No tienes permisos para realizar esta acción" }), {
@@ -51,11 +59,19 @@ serve(async (req) => {
     }
 
     // Obtener la empresa del usuario
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('company_id, companies(name)')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error obteniendo perfil:', profileError);
+      return new Response(JSON.stringify({ error: "Error obteniendo información de empresa" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!profile || !profile.company_id) {
       return new Response(JSON.stringify({ error: "No se encontró la empresa" }), {
