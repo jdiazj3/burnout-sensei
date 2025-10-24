@@ -13,7 +13,10 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header presente:', !!authHeader);
+    
     if (!authHeader) {
+      console.error('No se encontró el header de autorización');
       return new Response(JSON.stringify({ error: "No autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -26,14 +29,26 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('Obteniendo usuario...');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "No autorizado" }), {
+    if (userError) {
+      console.error('Error obteniendo usuario:', userError);
+      return new Response(JSON.stringify({ error: "Error de autenticación: " + userError.message }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    if (!user) {
+      console.error('Usuario no encontrado');
+      return new Response(JSON.stringify({ error: "Usuario no autenticado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log('Usuario autenticado:', user.id);
 
     // Verificar que el usuario sea company_admin
     const { data: roles, error: rolesError } = await supabaseClient

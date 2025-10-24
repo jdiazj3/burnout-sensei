@@ -125,17 +125,40 @@ const PaymentDashboard = () => {
   const handleCreatePayment = async () => {
     try {
       setProcessing(true);
+      
+      // Verificar que hay una sesión activa
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Sesión expirada",
+          description: "Por favor, inicia sesión nuevamente",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      console.log("Invocando función de pago...");
       const { data, error } = await supabase.functions.invoke("create-payment-preference");
 
-      if (error) throw error;
+      console.log("Respuesta de la función:", { data, error });
+
+      if (error) {
+        console.error("Error de la función:", error);
+        throw new Error(error.message || "Error desconocido");
+      }
+
+      if (!data || !data.init_point) {
+        throw new Error("No se recibió el link de pago");
+      }
 
       // Redirigir a Mercado Pago
       window.location.href = data.init_point;
     } catch (error: any) {
       console.error("Error creando pago:", error);
       toast({
-        title: "Error",
-        description: "No se pudo crear la preferencia de pago",
+        title: "Error al crear el pago",
+        description: error.message || "No se pudo crear la preferencia de pago",
         variant: "destructive",
       });
       setProcessing(false);
