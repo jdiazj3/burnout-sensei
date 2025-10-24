@@ -23,14 +23,17 @@ serve(async (req) => {
       });
     }
 
+    // Crear cliente de Supabase para autenticación
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    console.log('Obteniendo usuario...');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Extraer el token JWT del header
+    const token = authHeader.replace('Bearer ', '');
+    
+    console.log('Verificando usuario...');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) {
       console.error('Error obteniendo usuario:', userError);
@@ -50,8 +53,15 @@ serve(async (req) => {
 
     console.log('Usuario autenticado:', user.id);
 
+    // Crear cliente con autenticación para las queries
+    const authenticatedClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     // Verificar que el usuario sea company_admin
-    const { data: roles, error: rolesError } = await supabaseClient
+    const { data: roles, error: rolesError } = await authenticatedClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
@@ -74,7 +84,7 @@ serve(async (req) => {
     }
 
     // Obtener la empresa del usuario
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await authenticatedClient
       .from('profiles')
       .select('company_id, companies(name)')
       .eq('user_id', user.id)
@@ -148,7 +158,7 @@ serve(async (req) => {
     console.log('Preferencia creada:', preferenceData.id);
 
     // Registrar el pago pendiente en la base de datos
-    const { error: insertError } = await supabaseClient
+    const { error: insertError } = await authenticatedClient
       .from('payment_history')
       .insert({
         company_id: profile.company_id,
