@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, LogOut, Users, FileText, Trash2, Building2, BarChart3, ChevronDown, ChevronRight } from "lucide-react";
+import { Brain, LogOut, Users, FileText, Trash2, Building2, BarChart3, ChevronDown, ChevronRight, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -273,6 +273,19 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   <Button className="w-full">Ir a Usuarios</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="cursor-pointer hover:shadow-medium transition-shadow" onClick={() => navigate("/payments")}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Gestión de Pagos
+                  </CardTitle>
+                  <CardDescription>Ver y administrar todos los pagos</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full">Ir a Pagos</Button>
                 </CardContent>
               </Card>
             </>

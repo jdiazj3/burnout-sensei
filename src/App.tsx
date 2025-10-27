@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import CompanyManagement from "./pages/CompanyManagement";
 import UserManagement from "./pages/UserManagement";
 import CompanyDashboard from "./pages/CompanyDashboard";
+import PaymentManagement from "./pages/PaymentManagement";
 import PaymentDashboard from "./pages/PaymentDashboard";
 import Recommendations from "./pages/Recommendations";
 import NotFound from "./pages/NotFound";
@@ -72,6 +73,14 @@ const App = () => (
             element={
               <ProtectedRoute requireAdmin>
                 <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payments"
+            element={
+              <ProtectedRoute requireAdmin>
+                <PaymentManagement />
               </ProtectedRoute>
             }
           />
