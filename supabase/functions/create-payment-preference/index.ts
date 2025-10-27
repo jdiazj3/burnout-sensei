@@ -1,10 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Esquema de validación para los parámetros de pago
+const PaymentRequestSchema = z.object({
+  packageType: z.enum(['100_surveys']).default('100_surveys'),
+});
+
+// Configuración de paquetes disponibles
+const PAYMENT_PACKAGES = {
+  '100_surveys': {
+    title: '100 Encuestas de Burnout - Sensei Burnout',
+    description: 'Paquete de 100 evaluaciones de burnout para tu empresa',
+    quantity: 1,
+    unit_price: 50000, // $50,000 COP
+    surveys: 100,
+  }
+} as const;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -110,14 +127,41 @@ serve(async (req) => {
       throw new Error("MERCADOPAGO_ACCESS_TOKEN no configurado");
     }
 
+    // Validar entrada del usuario (si se envía body)
+    let packageType: keyof typeof PAYMENT_PACKAGES = '100_surveys';
+    
+    if (req.method === 'POST' && req.headers.get('content-type')?.includes('application/json')) {
+      try {
+        const body = await req.json();
+        const validation = PaymentRequestSchema.safeParse(body);
+        
+        if (!validation.success) {
+          console.error('Datos de entrada inválidos:', validation.error);
+          return new Response(JSON.stringify({ 
+            error: "Datos de entrada inválidos",
+            details: validation.error.errors 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        packageType = validation.data.packageType;
+      } catch {
+        // Si no hay body, usar default
+      }
+    }
+
+    const selectedPackage = PAYMENT_PACKAGES[packageType];
+
     // Crear preferencia de pago en Mercado Pago
     const preference = {
       items: [
         {
-          title: "100 Encuestas de Burnout - Sensei Burnout",
-          description: "Paquete de 100 evaluaciones de burnout para tu empresa",
-          quantity: 1,
-          unit_price: 50000, // $50,000 COP
+          title: selectedPackage.title,
+          description: selectedPackage.description,
+          quantity: selectedPackage.quantity,
+          unit_price: selectedPackage.unit_price,
           currency_id: "COP"
         }
       ],
@@ -163,10 +207,10 @@ serve(async (req) => {
       .insert({
         company_id: profile.company_id,
         mercadopago_preference_id: preferenceData.id,
-        amount: 50000,
+        amount: selectedPackage.unit_price,
         currency: 'COP',
         status: 'pending',
-        surveys_purchased: 100,
+        surveys_purchased: selectedPackage.surveys,
       });
 
     if (insertError) {

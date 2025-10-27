@@ -1,10 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Esquema de validación para los puntajes del MBI
+const BurnoutScoresSchema = z.object({
+  emotionalExhaustion: z.number().int().min(0).max(54),
+  depersonalization: z.number().int().min(0).max(30),
+  personalAccomplishment: z.number().int().min(0).max(48),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,7 +46,22 @@ serve(async (req) => {
 
     console.log('Usuario autenticado:', user.id);
 
-    const { emotionalExhaustion, depersonalization, personalAccomplishment } = await req.json();
+    // Validar entrada del usuario
+    const body = await req.json();
+    const validation = BurnoutScoresSchema.safeParse(body);
+    
+    if (!validation.success) {
+      console.error('Puntajes inválidos:', validation.error);
+      return new Response(JSON.stringify({ 
+        error: "Puntajes de burnout inválidos. Los valores deben estar en los rangos correctos del MBI.",
+        details: validation.error.errors 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { emotionalExhaustion, depersonalization, personalAccomplishment } = validation.data;
 
     console.log('Generando recomendaciones para:', { emotionalExhaustion, depersonalization, personalAccomplishment });
 
