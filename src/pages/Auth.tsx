@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,10 @@ const signupSchema = z.object({
     .regex(/[A-Z]/, "La contraseña debe contener al menos una mayúscula")
     .regex(/[0-9]/, "La contraseña debe contener al menos un número"),
   companyId: z.string().uuid("Debes seleccionar una empresa"),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email("Correo electrónico inválido").trim(),
 });
 
 const Auth = () => {
@@ -188,6 +192,40 @@ const Auth = () => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get("email") as string;
+
+      // Validate input
+      const validation = resetPasswordSchema.safeParse({ email });
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast.error(firstError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(validation.data.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast.error("Error al enviar correo: " + error.message);
+      } else {
+        toast.success("¡Correo enviado! Revisa tu bandeja de entrada para restablecer tu contraseña.");
+      }
+    } catch (error) {
+      toast.error("Error inesperado al enviar correo");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
       <Card className="w-full max-w-md shadow-strong">
@@ -202,9 +240,10 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
               <TabsTrigger value="signup">Registrarse</TabsTrigger>
+              <TabsTrigger value="reset">Olvidé mi Contraseña</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -283,6 +322,26 @@ const Auth = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creando cuenta..." : "Crear Cuenta"}
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="reset">
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Correo Electrónico</Label>
+                  <Input
+                    id="reset-email"
+                    name="email"
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    required
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Te enviaremos un correo con instrucciones para restablecer tu contraseña.
+                </p>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Enviando..." : "Enviar Correo"}
                 </Button>
               </form>
             </TabsContent>
