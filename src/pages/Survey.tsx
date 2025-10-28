@@ -274,8 +274,11 @@ const Survey = () => {
           }
         }
 
-        toast.success("¡Encuesta completada exitosamente!");
-        navigate("/dashboard");
+        toast.success("¡Encuesta completada! Generando tus recomendaciones personalizadas...");
+        
+        setTimeout(() => {
+          navigate("/recommendations");
+        }, 1500);
       }
     } catch (error) {
       toast.error("Error inesperado al enviar la encuesta");

@@ -72,21 +72,34 @@ const Recommendations = () => {
         personalAccomplishment: latestSurvey.personal_accomplishment,
       });
 
-      // Generar recomendaciones con IA
-      const { data, error: functionError } = await supabase.functions.invoke(
-        "generate-recommendations",
-        {
-          body: {
-            emotionalExhaustion: latestSurvey.emotional_exhaustion,
-            depersonalization: latestSurvey.depersonalization,
-            personalAccomplishment: latestSurvey.personal_accomplishment,
-          },
-        }
-      );
+      // Intentar cargar recomendaciones existentes de la base de datos
+      const { data: existingRecs, error: recsError } = await supabase
+        .from('survey_recommendations')
+        .select('recommendations')
+        .eq('survey_id', latestSurvey.id)
+        .maybeSingle();
 
-      if (functionError) throw functionError;
+      if (existingRecs && !recsError) {
+        // Usar recomendaciones existentes
+        setRecommendations(existingRecs.recommendations as unknown as Recommendations);
+      } else {
+        // Generar nuevas recomendaciones con IA
+        const { data, error: functionError } = await supabase.functions.invoke(
+          "generate-recommendations",
+          {
+            body: {
+              emotionalExhaustion: latestSurvey.emotional_exhaustion,
+              depersonalization: latestSurvey.depersonalization,
+              personalAccomplishment: latestSurvey.personal_accomplishment,
+              surveyId: latestSurvey.id,
+            },
+          }
+        );
 
-      setRecommendations(data.recommendations);
+        if (functionError) throw functionError;
+
+        setRecommendations(data.recommendations);
+      }
     } catch (error: any) {
       console.error("Error cargando recomendaciones:", error);
       toast({

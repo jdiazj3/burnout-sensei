@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import RecommendationsFloatingCard from "@/components/RecommendationsFloatingCard";
 
 interface Survey {
   id: string;
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
+  const [showRecommendationsCard, setShowRecommendationsCard] = useState(true);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -106,6 +108,10 @@ const Dashboard = () => {
           </Button>
         </div>
       </header>
+
+      {showRecommendationsCard && (
+        <RecommendationsFloatingCard onClose={() => setShowRecommendationsCard(false)} />
+      )}
 
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">

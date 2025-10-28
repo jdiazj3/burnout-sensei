@@ -12,6 +12,7 @@ const BurnoutScoresSchema = z.object({
   emotionalExhaustion: z.number().int().min(0).max(54),
   depersonalization: z.number().int().min(0).max(30),
   personalAccomplishment: z.number().int().min(0).max(48),
+  surveyId: z.string().uuid(),
 });
 
 serve(async (req) => {
@@ -139,6 +140,21 @@ Las recomendaciones deben ser:
     }
 
     console.log('Recomendaciones generadas exitosamente');
+
+    // Guardar recomendaciones en la base de datos
+    const { surveyId } = validation.data;
+    const { error: saveError } = await supabaseClient
+      .from('survey_recommendations')
+      .insert({
+        survey_id: surveyId,
+        user_id: user.id,
+        recommendations: recommendations
+      });
+
+    if (saveError) {
+      console.error('Error guardando recomendaciones:', saveError);
+      // Continuar aunque falle el guardado - el usuario aún obtiene las recomendaciones
+    }
 
     return new Response(JSON.stringify({ recommendations }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
