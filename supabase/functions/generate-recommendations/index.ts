@@ -55,25 +55,26 @@ serve(async (req) => {
       });
     }
 
+    // Crear cliente con service role (sin pasar el auth header del usuario)
     const supabaseClient = createClient(
       supabaseUrl,
-      supabaseServiceKey,
-      { global: { headers: { Authorization: authHeader } } }
+      supabaseServiceKey
     );
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
-    console.log('Resultado de auth.getUser:', { user: !!user, error: !!userError });
-    
-    if (userError || !user) {
-      console.error('ERROR en autenticación:', userError);
-      return new Response(JSON.stringify({ error: "No autorizado - token inválido" }), {
+    // Extraer user ID del JWT manualmente
+    let userId: string;
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userId = payload.sub;
+      console.log('✓ User ID extraído del JWT:', userId);
+    } catch (e) {
+      console.error('ERROR: No se pudo extraer user ID del JWT:', e);
+      return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    console.log('✓ Usuario autenticado:', user.id);
 
     // Validar entrada del usuario
     const body = await req.json();
@@ -217,7 +218,7 @@ Las recomendaciones deben ser:
       .from('survey_recommendations')
       .insert({
         survey_id: surveyId,
-        user_id: user.id,
+        user_id: userId,
         recommendations: recommendations
       });
 
