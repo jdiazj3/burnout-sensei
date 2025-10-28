@@ -23,14 +23,17 @@ serve(async (req) => {
       });
     }
 
+    // Extract token from Bearer format
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Token extracted, length:', token.length);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    console.log('Getting user...');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    console.log('Getting user with token...');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
       console.error('User error:', userError);
