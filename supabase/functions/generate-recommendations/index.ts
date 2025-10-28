@@ -103,10 +103,14 @@ Las recomendaciones deben ser:
 - Adaptadas al nivel detectado (bajo/moderado/alto)`;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    console.log('LOVABLE_API_KEY está configurada:', !!LOVABLE_API_KEY);
+    
     if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY no está configurada');
       throw new Error('LOVABLE_API_KEY no está configurada');
     }
 
+    console.log('Llamando a Lovable AI...');
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -121,6 +125,8 @@ Las recomendaciones deben ser:
         ],
       }),
     });
+
+    console.log('Respuesta de Lovable AI status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
