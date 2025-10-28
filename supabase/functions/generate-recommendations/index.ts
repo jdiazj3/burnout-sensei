@@ -16,12 +16,18 @@ const BurnoutScoresSchema = z.object({
 });
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
     console.log('=== INICIO DE FUNCIÓN generate-recommendations ===');
+    console.log('Método:', req.method);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
     
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
@@ -35,9 +41,23 @@ serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    console.log('Supabase URL configurada:', !!supabaseUrl);
+    console.log('Supabase Anon Key configurada:', !!supabaseAnonKey);
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('ERROR: Variables de Supabase no configuradas');
+      return new Response(JSON.stringify({ error: "Configuración del servidor incompleta" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
