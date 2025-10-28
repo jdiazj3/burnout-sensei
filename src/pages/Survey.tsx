@@ -237,43 +237,17 @@ const Survey = () => {
       });
 
       if (error) {
-        toast.error("Error al guardar la encuesta: " + error.message);
-      } else {
-        // Actualizar límites después de crear encuesta
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("company_id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (profile?.company_id) {
-          const { data: limits } = await supabase
-            .from("company_survey_limits")
-            .select("*")
-            .eq("company_id", profile.company_id)
-            .single();
-
-          if (limits) {
-            if (limits.is_trial_active) {
-              // Decrementar encuestas de prueba
-              await supabase
-                .from("company_survey_limits")
-                .update({
-                  trial_surveys_remaining: Math.max(0, limits.trial_surveys_remaining - 1),
-                })
-                .eq("company_id", profile.company_id);
-            } else {
-              // Incrementar encuestas usadas
-              await supabase
-                .from("company_survey_limits")
-                .update({
-                  surveys_used: limits.surveys_used + 1,
-                })
-                .eq("company_id", profile.company_id);
-            }
-          }
+        // El trigger puede lanzar excepciones personalizadas
+        if (error.message.includes("Ha agotado las encuestas")) {
+          toast.error("Has alcanzado el límite de encuestas disponibles");
+          await checkSurveyLimit(); // Refrescar límites
+        } else if (error.message.includes("Ha alcanzado el límite")) {
+          toast.error("Tu compañía ha alcanzado el límite de encuestas incluidas");
+          await checkSurveyLimit(); // Refrescar límites
+        } else {
+          toast.error("Error al guardar la encuesta: " + error.message);
         }
-
+      } else {
         toast.success("¡Encuesta completada! Generando tus recomendaciones personalizadas...");
         
         setTimeout(() => {
