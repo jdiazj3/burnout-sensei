@@ -42,12 +42,12 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     console.log('Supabase URL configurada:', !!supabaseUrl);
-    console.log('Supabase Anon Key configurada:', !!supabaseAnonKey);
+    console.log('Supabase Service Key configurada:', !!supabaseServiceKey);
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
       console.error('ERROR: Variables de Supabase no configuradas');
       return new Response(JSON.stringify({ error: "Configuración del servidor incompleta" }), {
         status: 500,
@@ -57,7 +57,7 @@ serve(async (req) => {
 
     const supabaseClient = createClient(
       supabaseUrl,
-      supabaseAnonKey,
+      supabaseServiceKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
