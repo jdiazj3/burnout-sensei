@@ -27,13 +27,14 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     console.log('Token extracted, length:', token.length);
 
-    const supabaseClient = createClient(
+    // Use anon key for auth verification
+    const authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
     console.log('Getting user with token...');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: userError } = await authClient.auth.getUser(token);
     
     if (userError || !user) {
       console.error('User error:', userError);
@@ -45,6 +46,11 @@ serve(async (req) => {
 
     console.log('User found:', user.id);
     
+    // Use service role key for database queries to bypass RLS
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
     // Obtener la empresa del usuario
     const { data: profile } = await supabaseClient
       .from('profiles')
