@@ -29,15 +29,19 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
+    console.log('Getting user...');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
     if (userError || !user) {
+      console.error('User error:', userError);
       return new Response(JSON.stringify({ error: "No autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log('User found:', user.id);
+    
     // Obtener la empresa del usuario
     const { data: profile } = await supabaseClient
       .from('profiles')
@@ -45,12 +49,17 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
+    console.log('Profile:', profile);
+
     if (!profile || !profile.company_id) {
+      console.error('No company found for user');
       return new Response(JSON.stringify({ error: "No se encontró la empresa" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log('Company ID:', profile.company_id);
 
     // Obtener límites de la empresa
     const { data: limits, error: limitsError } = await supabaseClient
@@ -58,6 +67,8 @@ serve(async (req) => {
       .select('*')
       .eq('company_id', profile.company_id)
       .single();
+
+    console.log('Limits:', limits, 'Error:', limitsError);
 
     if (limitsError || !limits) {
       console.error('Error al obtener límites:', limitsError);
@@ -83,6 +94,8 @@ serve(async (req) => {
       canCreate = availableSurveys > 0;
       reason = canCreate ? 'paid' : 'limit_reached';
     }
+
+    console.log('Result:', { canCreate, availableSurveys, reason });
 
     return new Response(JSON.stringify({
       canCreate,
