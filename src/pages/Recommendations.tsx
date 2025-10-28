@@ -84,6 +84,13 @@ const Recommendations = () => {
         setRecommendations(existingRecs.recommendations as unknown as Recommendations);
       } else {
         // Generar nuevas recomendaciones con IA
+        console.log('Llamando a generate-recommendations con:', {
+          emotionalExhaustion: latestSurvey.emotional_exhaustion,
+          depersonalization: latestSurvey.depersonalization,
+          personalAccomplishment: latestSurvey.personal_accomplishment,
+          surveyId: latestSurvey.id,
+        });
+
         const { data, error: functionError } = await supabase.functions.invoke(
           "generate-recommendations",
           {
@@ -96,7 +103,17 @@ const Recommendations = () => {
           }
         );
 
-        if (functionError) throw functionError;
+        console.log('Respuesta de generate-recommendations:', { data, error: functionError });
+
+        if (functionError) {
+          console.error('Error detallado:', JSON.stringify(functionError, null, 2));
+          throw functionError;
+        }
+
+        if (!data || !data.recommendations) {
+          console.error('Datos recibidos inválidos:', data);
+          throw new Error('Respuesta inválida del servidor');
+        }
 
         setRecommendations(data.recommendations);
       }
