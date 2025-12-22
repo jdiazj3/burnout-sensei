@@ -53,8 +53,8 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Recommendations />
-            </ProtectedRoute>
-          }
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/health-survey"
