@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb } from "lucide-react";
+import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb, Heart, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -114,9 +114,34 @@ const Dashboard = () => {
       )}
 
       <main className="container mx-auto px-4 py-8">
+        {/* Health Survey Promo Card */}
+        <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg">
+          <CardContent className="flex flex-col md:flex-row items-center justify-between gap-6 p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                <Heart className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Cuestionario de Salud Laboral</h3>
+                <p className="text-white/90">
+                  Evalúa tu actividad física, nutrición, descanso y ambiente laboral
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => navigate("/health-survey")} 
+              size="lg"
+              className="bg-white text-green-600 hover:bg-white/90 hover:text-green-700"
+            >
+              Realizar Evaluación
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold">Mis Evaluaciones</h2>
+            <h2 className="text-3xl font-bold">Mis Evaluaciones de Burnout</h2>
             <p className="text-muted-foreground">Historial de encuestas completadas</p>
           </div>
           <div className="flex gap-3">
