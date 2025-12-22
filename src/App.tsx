@@ -8,6 +8,8 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Survey from "./pages/Survey";
+import HealthSurvey from "./pages/HealthSurvey";
+import HealthRecommendations from "./pages/HealthRecommendations";
 import Admin from "./pages/Admin";
 import CompanyManagement from "./pages/CompanyManagement";
 import UserManagement from "./pages/UserManagement";
@@ -51,6 +53,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Recommendations />
+            </ProtectedRoute>
+          }
+          />
+          <Route
+            path="/health-survey"
+            element={
+              <ProtectedRoute>
+                <HealthSurvey />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/health-recommendations"
+            element={
+              <ProtectedRoute>
+                <HealthRecommendations />
               </ProtectedRoute>
             }
           />

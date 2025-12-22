@@ -3,6 +3,9 @@ project_id = "lffugnygripitvoofzbo"
 [functions.generate-recommendations]
 verify_jwt = true
 
+[functions.generate-health-recommendations]
+verify_jwt = true
+
 [functions.check-survey-limit]
 verify_jwt = true
 

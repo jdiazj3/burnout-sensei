@@ -76,6 +76,131 @@ export type Database = {
           },
         ]
       }
+      health_recommendations: {
+        Row: {
+          created_at: string
+          id: string
+          recommendations: Json
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recommendations?: Json
+          survey_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recommendations?: Json
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_recommendations_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "health_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_surveys: {
+        Row: {
+          active_breaks: boolean | null
+          age: number
+          caffeine_consumption: string | null
+          created_at: string
+          daily_fatigue: string | null
+          ergonomic_setup: string | null
+          food_types: string[] | null
+          gender: string
+          health_conditions: string[] | null
+          id: string
+          meals_per_day: number
+          medical_checkup_frequency: string | null
+          nutrition_score: number | null
+          overall_health_score: number | null
+          physical_activity_frequency: string
+          physical_health_score: number | null
+          physical_pain_areas: string[] | null
+          responses: Json
+          rest_score: number | null
+          risk_level: string | null
+          screen_exposure_hours: number | null
+          sedentary_hours: number | null
+          sleep_hours: number | null
+          sleep_quality: string | null
+          updated_at: string
+          user_id: string
+          water_intake: string | null
+          work_disconnection: string | null
+        }
+        Insert: {
+          active_breaks?: boolean | null
+          age: number
+          caffeine_consumption?: string | null
+          created_at?: string
+          daily_fatigue?: string | null
+          ergonomic_setup?: string | null
+          food_types?: string[] | null
+          gender: string
+          health_conditions?: string[] | null
+          id?: string
+          meals_per_day: number
+          medical_checkup_frequency?: string | null
+          nutrition_score?: number | null
+          overall_health_score?: number | null
+          physical_activity_frequency: string
+          physical_health_score?: number | null
+          physical_pain_areas?: string[] | null
+          responses?: Json
+          rest_score?: number | null
+          risk_level?: string | null
+          screen_exposure_hours?: number | null
+          sedentary_hours?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: string | null
+          updated_at?: string
+          user_id: string
+          water_intake?: string | null
+          work_disconnection?: string | null
+        }
+        Update: {
+          active_breaks?: boolean | null
+          age?: number
+          caffeine_consumption?: string | null
+          created_at?: string
+          daily_fatigue?: string | null
+          ergonomic_setup?: string | null
+          food_types?: string[] | null
+          gender?: string
+          health_conditions?: string[] | null
+          id?: string
+          meals_per_day?: number
+          medical_checkup_frequency?: string | null
+          nutrition_score?: number | null
+          overall_health_score?: number | null
+          physical_activity_frequency?: string
+          physical_health_score?: number | null
+          physical_pain_areas?: string[] | null
+          responses?: Json
+          rest_score?: number | null
+          risk_level?: string | null
+          screen_exposure_hours?: number | null
+          sedentary_hours?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: string | null
+          updated_at?: string
+          user_id?: string
+          water_intake?: string | null
+          work_disconnection?: string | null
+        }
+        Relationships: []
+      }
       payment_history: {
         Row: {
           amount: number
