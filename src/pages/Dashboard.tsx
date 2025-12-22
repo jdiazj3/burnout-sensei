@@ -144,10 +144,14 @@ const Dashboard = () => {
             <h2 className="text-3xl font-bold">Mis Evaluaciones de Burnout</h2>
             <p className="text-muted-foreground">Historial de encuestas completadas</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button onClick={() => navigate("/recommendations")} variant="outline" size="lg">
               <Lightbulb className="mr-2 h-5 w-5" />
-              Ver Recomendaciones
+              Recomendaciones Burnout
+            </Button>
+            <Button onClick={() => navigate("/health-recommendations")} variant="outline" size="lg" className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700">
+              <Heart className="mr-2 h-5 w-5" />
+              Recomendaciones Salud
             </Button>
             <Button onClick={() => navigate("/survey")} size="lg">
               <Plus className="mr-2 h-5 w-5" />
