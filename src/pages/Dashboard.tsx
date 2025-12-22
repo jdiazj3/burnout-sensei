@@ -3,13 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb, Heart, ArrowRight } from "lucide-react";
+import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb, Heart, ArrowRight, Activity, Apple, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Progress } from "@/components/ui/progress";
 import RecommendationsFloatingCard from "@/components/RecommendationsFloatingCard";
+
+interface HealthSurvey {
+  id: string;
+  created_at: string;
+  physical_health_score: number;
+  nutrition_score: number;
+  rest_score: number;
+  overall_health_score: number;
+  risk_level: string;
+}
 
 interface Survey {
   id: string;
@@ -26,6 +37,7 @@ interface Survey {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [healthSurvey, setHealthSurvey] = useState<HealthSurvey | null>(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [showRecommendationsCard, setShowRecommendationsCard] = useState(true);
@@ -53,6 +65,19 @@ const Dashboard = () => {
 
         if (surveysData) {
           setSurveys(surveysData);
+        }
+
+        // Load latest health survey
+        // @ts-ignore - Tabla recién creada
+        const { data: healthData } = await supabase
+          .from('health_surveys')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (healthData && healthData.length > 0) {
+          setHealthSurvey(healthData[0] as HealthSurvey);
         }
       }
       
@@ -139,7 +164,89 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="mb-8 flex items-center justify-between">
+        {/* Health Survey Summary Card */}
+        {healthSurvey && (
+          <Card className="mb-8 shadow-medium border-green-200 dark:border-green-800">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                  <Heart className="h-5 w-5" />
+                  Última Evaluación de Salud Laboral
+                </CardTitle>
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(healthSurvey.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                </span>
+              </div>
+              <CardDescription>
+                Puntuación general: <span className={`font-bold ${
+                  healthSurvey.overall_health_score >= 70 ? 'text-green-600' : 
+                  healthSurvey.overall_health_score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                }`}>{healthSurvey.overall_health_score}/100</span>
+                {' • '}
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  healthSurvey.risk_level === 'bajo' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                  healthSurvey.risk_level === 'medio' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                  'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                }`}>
+                  Riesgo {healthSurvey.risk_level}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    Actividad Física
+                  </div>
+                  <Progress value={healthSurvey.physical_health_score} className="h-2" />
+                  <p className={`text-right text-sm font-medium ${
+                    healthSurvey.physical_health_score >= 70 ? 'text-green-600' : 
+                    healthSurvey.physical_health_score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>{healthSurvey.physical_health_score}/100</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Apple className="h-4 w-4 text-green-500" />
+                    Nutrición
+                  </div>
+                  <Progress value={healthSurvey.nutrition_score} className="h-2" />
+                  <p className={`text-right text-sm font-medium ${
+                    healthSurvey.nutrition_score >= 70 ? 'text-green-600' : 
+                    healthSurvey.nutrition_score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>{healthSurvey.nutrition_score}/100</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Moon className="h-4 w-4 text-purple-500" />
+                    Descanso
+                  </div>
+                  <Progress value={healthSurvey.rest_score} className="h-2" />
+                  <p className={`text-right text-sm font-medium ${
+                    healthSurvey.rest_score >= 70 ? 'text-green-600' : 
+                    healthSurvey.rest_score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>{healthSurvey.rest_score}/100</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate("/health-recommendations")}
+                  className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+                >
+                  Ver Recomendaciones
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold">Mis Evaluaciones de Burnout</h2>
             <p className="text-muted-foreground">Historial de encuestas completadas</p>
