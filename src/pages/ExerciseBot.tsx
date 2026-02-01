@@ -37,6 +37,7 @@ const ExerciseBot = () => {
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
   useEffect(() => {
     loadSessionHistory();
@@ -65,12 +66,20 @@ const ExerciseBot = () => {
 
   const handleEndSession = async () => {
     setIsVideoActive(false);
+    setIsMonitoring(false);
     await endSession();
     await loadSessionHistory();
     toast({
       title: "Sesión completada",
       description: "¡Excelente trabajo! Tu progreso ha sido guardado.",
     });
+  };
+
+  const handleToggleVideo = () => {
+    if (isVideoActive) {
+      setIsMonitoring(false); // Stop monitoring when closing camera
+    }
+    setIsVideoActive(!isVideoActive);
   };
 
   const getTotalStats = () => {
@@ -92,8 +101,8 @@ const ExerciseBot = () => {
               Terminar sesión
             </Button>
             <div className="flex items-center gap-2">
-              {isVideoActive && (
-                <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
+              {isMonitoring && (
+                <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded-full flex items-center gap-1">
                   <Video className="w-3 h-3" />
                   Monitoreo activo
                 </span>
@@ -113,7 +122,9 @@ const ExerciseBot = () => {
                   onCapture={analyzeVideoFrame}
                   isAnalyzing={isAnalyzingVideo}
                   feedback={videoFeedback}
-                  onToggle={() => setIsVideoActive(!isVideoActive)}
+                  onToggle={handleToggleVideo}
+                  isMonitoring={isMonitoring}
+                  onToggleMonitoring={() => setIsMonitoring(!isMonitoring)}
                 />
               )}
               {sessionType === "bienestar" && (

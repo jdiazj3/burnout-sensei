@@ -10,6 +10,8 @@ interface ExerciseVideoCaptureProps {
   isAnalyzing: boolean;
   feedback?: VideoFeedback | null;
   onToggle: () => void;
+  isMonitoring?: boolean;
+  onToggleMonitoring?: () => void;
 }
 
 export interface VideoFeedback {
@@ -28,6 +30,8 @@ export function ExerciseVideoCapture({
   isAnalyzing,
   feedback,
   onToggle,
+  isMonitoring = false,
+  onToggleMonitoring,
 }: ExerciseVideoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -141,9 +145,9 @@ export function ExerciseVideoCapture({
     ctx.fillText(statusText, 20, 32);
   }, [feedback]);
 
-  // Auto-capture frames when active
+  // Auto-capture frames only when monitoring is active
   useEffect(() => {
-    if (isActive && stream && !isAnalyzing) {
+    if (isActive && stream && !isAnalyzing && isMonitoring) {
       intervalRef.current = setInterval(() => {
         const frame = captureFrame();
         if (frame) {
@@ -158,7 +162,7 @@ export function ExerciseVideoCapture({
         intervalRef.current = null;
       }
     };
-  }, [isActive, stream, isAnalyzing, captureFrame, onCapture]);
+  }, [isActive, stream, isAnalyzing, isMonitoring, captureFrame, onCapture]);
 
   useEffect(() => {
     if (isActive && !stream) {
@@ -215,31 +219,63 @@ export function ExerciseVideoCapture({
           {/* Status indicators */}
           <div className="absolute top-2 right-2 flex gap-2">
             {isAnalyzing && (
-              <div className="bg-amber-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <div className="bg-amber-500/90 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Analizando...
               </div>
             )}
-            <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              EN VIVO
+            {isMonitoring && (
+              <div className="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                MONITOREANDO
+              </div>
+            )}
+            <div className="bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              <Video className="w-3 h-3" />
+              CÁMARA
             </div>
           </div>
 
           {/* Controls */}
-          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center">
+          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center gap-2">
+            {onToggleMonitoring && (
+              <>
+                {!isMonitoring ? (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={onToggleMonitoring}
+                    className="gap-1 flex-1"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Iniciar monitoreo
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onToggleMonitoring}
+                    disabled={isAnalyzing}
+                    className="gap-1 flex-1"
+                  >
+                    <X className="w-4 h-4" />
+                    Detener monitoreo
+                  </Button>
+                )}
+              </>
+            )}
             <Button
               size="sm"
-              variant="secondary"
+              variant="outline"
               onClick={() => {
                 const frame = captureFrame();
                 if (frame) onCapture(frame);
               }}
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || isMonitoring}
               className="gap-1"
             >
               <Camera className="w-4 h-4" />
-              Capturar ahora
+              Captura manual
             </Button>
             <Button
               size="sm"
@@ -248,7 +284,7 @@ export function ExerciseVideoCapture({
               className="gap-1"
             >
               <VideoOff className="w-4 h-4" />
-              Detener
+              Cerrar
             </Button>
           </div>
         </div>
