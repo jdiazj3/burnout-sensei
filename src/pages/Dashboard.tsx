@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb, Heart, ArrowRight, Activity, Apple, Moon } from "lucide-react";
+import { Brain, LogOut, Plus, FileText, Calendar, TrendingUp, TrendingDown, Lightbulb, Heart, ArrowRight, Activity, Apple, Moon, Bot } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -139,30 +139,58 @@ const Dashboard = () => {
       )}
 
       <main className="container mx-auto px-4 py-8">
-        {/* Health Survey Promo Card */}
-        <Card className="mb-8 overflow-hidden border-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg">
-          <CardContent className="flex flex-col md:flex-row items-center justify-between gap-6 p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                <Heart className="h-8 w-8 text-white" />
+        {/* Promo Cards Grid */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          {/* Health Survey Promo Card */}
+          <Card className="overflow-hidden border-0 bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg">
+            <CardContent className="flex flex-col items-start gap-4 p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <Heart className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Cuestionario de Salud Laboral</h3>
+                  <p className="text-white/90 text-sm">
+                    Evalúa tu actividad física, nutrición y descanso
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold">Cuestionario de Salud Laboral</h3>
-                <p className="text-white/90">
-                  Evalúa tu actividad física, nutrición, descanso y ambiente laboral
-                </p>
+              <Button 
+                onClick={() => navigate("/health-survey")} 
+                size="lg"
+                className="bg-white text-green-600 hover:bg-white/90 hover:text-green-700 w-full"
+              >
+                Realizar Evaluación
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Exercise Bot Promo Card */}
+          <Card className="overflow-hidden border-0 bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg">
+            <CardContent className="flex flex-col items-start gap-4 p-6">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+                  <Bot className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">🥋 Sensei Bot</h3>
+                  <p className="text-white/90 text-sm">
+                    Ejercicios guiados de bienestar y pausas activas
+                  </p>
+                </div>
               </div>
-            </div>
-            <Button 
-              onClick={() => navigate("/health-survey")} 
-              size="lg"
-              className="bg-white text-green-600 hover:bg-white/90 hover:text-green-700"
-            >
-              Realizar Evaluación
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </CardContent>
-        </Card>
+              <Button 
+                onClick={() => navigate("/exercise-bot")} 
+                size="lg"
+                className="bg-white text-purple-600 hover:bg-white/90 hover:text-purple-700 w-full"
+              >
+                Iniciar Sesión con Sensei
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Health Survey Summary Card */}
         {healthSurvey && (

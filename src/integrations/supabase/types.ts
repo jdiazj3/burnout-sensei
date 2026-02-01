@@ -76,6 +76,139 @@ export type Database = {
           },
         ]
       }
+      exercise_messages: {
+        Row: {
+          content: string
+          created_at: string
+          exercise_data: Json | null
+          id: string
+          message_type: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          exercise_data?: Json | null
+          id?: string
+          message_type?: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          exercise_data?: Json | null
+          id?: string
+          message_type?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercise_results: {
+        Row: {
+          created_at: string
+          evaluation: string | null
+          exercise_name: string
+          exercise_type: string
+          feedback: string | null
+          id: string
+          is_correct: boolean | null
+          score: number | null
+          session_id: string
+          user_id: string
+          user_response: string | null
+        }
+        Insert: {
+          created_at?: string
+          evaluation?: string | null
+          exercise_name: string
+          exercise_type: string
+          feedback?: string | null
+          id?: string
+          is_correct?: boolean | null
+          score?: number | null
+          session_id: string
+          user_id: string
+          user_response?: string | null
+        }
+        Update: {
+          created_at?: string
+          evaluation?: string | null
+          exercise_name?: string
+          exercise_type?: string
+          feedback?: string | null
+          id?: string
+          is_correct?: boolean | null
+          score?: number | null
+          session_id?: string
+          user_id?: string
+          user_response?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercise_sessions: {
+        Row: {
+          completed_at: string | null
+          completed_exercises: number
+          created_at: string
+          id: string
+          score: number | null
+          session_type: string
+          started_at: string
+          status: string
+          total_exercises: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_exercises?: number
+          created_at?: string
+          id?: string
+          score?: number | null
+          session_type: string
+          started_at?: string
+          status?: string
+          total_exercises?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_exercises?: number
+          created_at?: string
+          id?: string
+          score?: number | null
+          session_type?: string
+          started_at?: string
+          status?: string
+          total_exercises?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_recommendations: {
         Row: {
           created_at: string
