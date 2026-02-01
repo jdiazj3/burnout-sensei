@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Brain, Dumbbell, History, Trophy } from "lucide-react";
+import { ArrowLeft, Brain, Dumbbell, History, Trophy, Video } from "lucide-react";
 import { useExerciseBot, SessionType } from "@/hooks/useExerciseBot";
 import { ExerciseBotChat } from "@/components/ExerciseBotChat";
+import { ExerciseVideoCapture } from "@/components/ExerciseVideoCapture";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -25,13 +26,17 @@ const ExerciseBot = () => {
     isLoading,
     sessionId,
     sessionType,
+    isAnalyzingVideo,
+    videoFeedback,
     startSession,
     sendMessage,
     endSession,
+    analyzeVideoFrame,
   } = useExerciseBot();
 
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isVideoActive, setIsVideoActive] = useState(false);
 
   useEffect(() => {
     loadSessionHistory();
@@ -59,6 +64,7 @@ const ExerciseBot = () => {
   };
 
   const handleEndSession = async () => {
+    setIsVideoActive(false);
     await endSession();
     await loadSessionHistory();
     toast({
@@ -79,23 +85,60 @@ const ExerciseBot = () => {
   if (sessionId && sessionType) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-8">
-        <div className="container max-w-3xl mx-auto px-4">
+        <div className="container max-w-4xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <Button variant="ghost" onClick={handleEndSession}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Terminar sesión
             </Button>
-            <div className="text-sm text-muted-foreground">
-              Sesión activa
+            <div className="flex items-center gap-2">
+              {isVideoActive && (
+                <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full flex items-center gap-1">
+                  <Video className="w-3 h-3" />
+                  Monitoreo activo
+                </span>
+              )}
+              <span className="text-sm text-muted-foreground">
+                Sesión activa
+              </span>
             </div>
           </div>
 
-          <ExerciseBotChat
-            messages={messages}
-            isLoading={isLoading}
-            onSendMessage={sendMessage}
-            sessionType={sessionType}
-          />
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Video Capture Panel - Only for physical exercises */}
+            <div className="lg:order-1">
+              {sessionType === "fisico" && (
+                <ExerciseVideoCapture
+                  isActive={isVideoActive}
+                  onCapture={analyzeVideoFrame}
+                  isAnalyzing={isAnalyzingVideo}
+                  feedback={videoFeedback}
+                  onToggle={() => setIsVideoActive(!isVideoActive)}
+                />
+              )}
+              {sessionType === "bienestar" && (
+                <Card className="mb-4">
+                  <CardContent className="p-6 text-center">
+                    <div className="text-4xl mb-3">🧘</div>
+                    <h3 className="font-medium mb-2">Sesión de Bienestar</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Sigue las instrucciones del bot para ejercicios de respiración y relajación.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Chat Panel */}
+            <div className="lg:order-2">
+              <ExerciseBotChat
+                messages={messages}
+                isLoading={isLoading}
+                onSendMessage={sendMessage}
+                sessionType={sessionType}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -182,15 +225,15 @@ const ExerciseBot = () => {
                 Ejercicios Físicos
               </CardTitle>
               <CardDescription className="text-orange-100">
-                Pausas activas, estiramientos y rutinas de oficina
+                Pausas activas con monitoreo de cámara
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>💪 Estiramientos de cuello</li>
-                <li>🖐️ Ejercicios para muñecas</li>
-                <li>🦵 Pausas activas de pie</li>
-                <li>👁️ Descanso visual 20-20-20</li>
+                <li>📹 Monitoreo con cámara en vivo</li>
+                <li>🎯 Correcciones de postura en tiempo real</li>
+                <li>✅ Retroalimentación visual</li>
               </ul>
               <Button className="w-full mt-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 group-hover:scale-105 transition-transform">
                 Iniciar sesión física
