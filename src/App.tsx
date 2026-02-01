@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Survey from "./pages/Survey";
 import HealthSurvey from "./pages/HealthSurvey";
 import HealthRecommendations from "./pages/HealthRecommendations";
+import ExerciseBot from "./pages/ExerciseBot";
 import Admin from "./pages/Admin";
 import CompanyManagement from "./pages/CompanyManagement";
 import UserManagement from "./pages/UserManagement";
@@ -69,6 +70,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <HealthRecommendations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/exercise-bot"
+            element={
+              <ProtectedRoute>
+                <ExerciseBot />
               </ProtectedRoute>
             }
           />
