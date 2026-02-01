@@ -77,33 +77,36 @@ export function ExerciseBotChat({
                   }`}
                 >
                   {message.role === "assistant" ? (
-                    <div className="space-y-3">
+                    <div>
+                      {/* Newspaper-style layout with image floated left */}
+                      {message.imageUrl && (
+                        <div className="float-left mr-4 mb-2 w-32 sm:w-40">
+                          <div className="rounded-lg overflow-hidden border border-border shadow-sm">
+                            <div className="bg-muted/50 px-2 py-1 flex items-center gap-1.5 border-b border-border">
+                              <ImageIcon className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-[10px] font-medium text-muted-foreground">
+                                Referencia
+                              </span>
+                            </div>
+                            <img 
+                              src={message.imageUrl} 
+                              alt="Ilustración del ejercicio"
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
                       <div className="prose prose-sm dark:prose-invert max-w-none">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
-                      {/* Exercise illustration */}
-                      {message.imageUrl && (
-                        <div className="mt-3 rounded-lg overflow-hidden border border-border">
-                          <div className="bg-muted/50 px-3 py-1.5 flex items-center gap-2 border-b border-border">
-                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs font-medium text-muted-foreground">
-                              Imagen de referencia
-                            </span>
-                          </div>
-                          <img 
-                            src={message.imageUrl} 
-                            alt="Ilustración del ejercicio"
-                            className="w-full max-w-sm mx-auto"
-                          />
-                        </div>
-                      )}
                       {/* Loading state for image */}
                       {message.content && !message.imageUrl && message.content.includes("**") && (
-                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground clear-left">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           <span>Generando imagen de ejemplo...</span>
                         </div>
                       )}
+                      <div className="clear-both" />
                     </div>
                   ) : (
                     <p className="text-sm">{message.content}</p>
