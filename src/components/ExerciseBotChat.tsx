@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, ImageIcon } from "lucide-react";
 import { Message } from "@/hooks/useExerciseBot";
 import ReactMarkdown from "react-markdown";
 
@@ -77,8 +77,33 @@ export function ExerciseBotChat({
                   }`}
                 >
                   {message.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    <div className="space-y-3">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                      </div>
+                      {/* Exercise illustration */}
+                      {message.imageUrl && (
+                        <div className="mt-3 rounded-lg overflow-hidden border border-border">
+                          <div className="bg-muted/50 px-3 py-1.5 flex items-center gap-2 border-b border-border">
+                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Imagen de referencia
+                            </span>
+                          </div>
+                          <img 
+                            src={message.imageUrl} 
+                            alt="Ilustración del ejercicio"
+                            className="w-full max-w-sm mx-auto"
+                          />
+                        </div>
+                      )}
+                      {/* Loading state for image */}
+                      {message.content && !message.imageUrl && message.content.includes("**") && (
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Generando imagen de ejemplo...</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm">{message.content}</p>

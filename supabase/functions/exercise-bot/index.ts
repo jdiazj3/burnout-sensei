@@ -26,11 +26,14 @@ TIPOS DE EJERCICIOS QUE PUEDES PROPONER:
 - Pausas activas mentales
 
 FORMATO DE RESPUESTA:
-Cuando propongas un ejercicio, incluye:
-- Nombre del ejercicio
-- Duración estimada
-- Instrucciones paso a paso
-- Cuándo preguntar cómo le fue
+Cuando propongas un ejercicio, SIEMPRE incluye esta estructura exacta:
+1. **Nombre del ejercicio:** [nombre]
+2. **Duración estimada:** [tiempo]
+3. **Instrucciones paso a paso**
+4. Cuándo preguntar cómo le fue
+
+IMPORTANTE: Cuando propongas un ejercicio, incluye al final una línea especial con el formato:
+[EXERCISE_IMAGE: descripción visual del ejercicio para generar una ilustración]
 
 Siempre responde en español.`;
 
@@ -56,12 +59,15 @@ TIPOS DE EJERCICIOS QUE PUEDES PROPONER:
 - Ejercicios para ojos (regla 20-20-20)
 
 FORMATO DE RESPUESTA:
-Cuando propongas un ejercicio, incluye:
-- Nombre del ejercicio
-- Repeticiones o duración
-- Posición inicial
-- Instrucciones paso a paso
-- Beneficios del ejercicio
+Cuando propongas un ejercicio, SIEMPRE incluye esta estructura exacta:
+1. **Nombre del ejercicio:** [nombre]
+2. **Repeticiones o duración**
+3. **Posición inicial**
+4. **Instrucciones paso a paso**
+5. **Beneficios del ejercicio**
+
+IMPORTANTE: Cuando propongas un ejercicio, incluye al final una línea especial con el formato:
+[EXERCISE_IMAGE: descripción visual detallada del ejercicio mostrando la postura correcta, persona de oficina realizando el movimiento]
 
 Siempre responde en español.`;
 
@@ -96,17 +102,59 @@ REGLAS:
 
 Responde SOLO con el JSON, sin texto adicional.`;
 
+async function generateExerciseImage(description: string, apiKey: string): Promise<string | null> {
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: `Create a simple, clean illustration showing a person performing this exercise in an office setting. Style: friendly cartoon/illustration, professional, easy to understand. Exercise: ${description}. The image should clearly demonstrate the correct posture and movement.`,
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Image generation failed:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    return imageUrl || null;
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, sessionType, analyzeImage, imageData, currentExercise } = await req.json();
+    const { messages, sessionType, analyzeImage, imageData, currentExercise, generateImage, imageDescription } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Image generation mode
+    if (generateImage && imageDescription) {
+      const imageUrl = await generateExerciseImage(imageDescription, LOVABLE_API_KEY);
+      return new Response(JSON.stringify({ imageUrl }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Image analysis mode

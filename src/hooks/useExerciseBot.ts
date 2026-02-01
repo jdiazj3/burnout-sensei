@@ -7,6 +7,7 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 };
 
 export type SessionType = "bienestar" | "fisico";
@@ -20,6 +21,35 @@ export function useExerciseBot() {
   const [videoFeedback, setVideoFeedback] = useState<VideoFeedback | null>(null);
   const [currentExercise, setCurrentExercise] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const generateExerciseImage = useCallback(async (description: string): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exercise-bot`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            generateImage: true,
+            imageDescription: description,
+          }),
+        }
+      );
+
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      return data.imageUrl || null;
+    } catch (error) {
+      console.error("Error generating exercise image:", error);
+      return null;
+    }
+  }, []);
 
   const startSession = useCallback(async (type: SessionType) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -250,6 +280,36 @@ export function useExerciseBot() {
         setCurrentExercise(exerciseMatch[1].trim());
       }
 
+      // Check for image generation tag and generate image
+      const imageMatch = assistantContent.match(/\[EXERCISE_IMAGE:\s*([^\]]+)\]/);
+      if (imageMatch) {
+        const imageDescription = imageMatch[1].trim();
+        // Remove the tag from displayed content
+        const cleanContent = assistantContent.replace(/\[EXERCISE_IMAGE:[^\]]+\]/, "").trim();
+        
+        // Update message without the tag
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: cleanContent }
+              : m
+          )
+        );
+
+        // Generate image asynchronously
+        generateExerciseImage(imageDescription).then((imageUrl) => {
+          if (imageUrl) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, imageUrl }
+                  : m
+              )
+            );
+          }
+        });
+      }
+
       // Save assistant message to database
       await supabase.from("exercise_messages").insert({
         session_id: activeSessionId,
@@ -269,7 +329,7 @@ export function useExerciseBot() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, sessionId, sessionType, toast]);
+  }, [messages, sessionId, sessionType, toast, generateExerciseImage]);
 
   const endSession = useCallback(async () => {
     if (!sessionId) return;
