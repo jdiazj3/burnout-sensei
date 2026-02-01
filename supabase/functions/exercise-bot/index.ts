@@ -65,19 +65,128 @@ Cuando propongas un ejercicio, incluye:
 
 Siempre responde en español.`;
 
+const VIDEO_ANALYSIS_PROMPT = `Eres un entrenador experto que analiza imágenes de ejercicios. Tu rol es evaluar la postura y ejecución del ejercicio que ves en la imagen.
+
+INSTRUCCIONES:
+1. Analiza la imagen cuidadosamente
+2. Identifica qué ejercicio está intentando hacer la persona
+3. Evalúa si la postura es correcta
+4. Identifica áreas específicas que necesitan corrección
+
+DEBES RESPONDER SIEMPRE EN FORMATO JSON EXACTO:
+{
+  "isCorrect": true/false,
+  "message": "Mensaje general de retroalimentación breve",
+  "corrections": [
+    {
+      "area": "Nombre del área (ej: Hombros, Espalda, Cuello)",
+      "instruction": "Instrucción específica de corrección",
+      "position": {"x": número_estimado_x, "y": número_estimado_y}
+    }
+  ]
+}
+
+REGLAS:
+- Si la postura es correcta, isCorrect=true y corrections vacío
+- Si hay problemas, isCorrect=false y lista las correcciones
+- Las posiciones x,y son estimaciones de dónde está el problema en la imagen (0-640 para x, 0-480 para y)
+- Sé específico pero amable en las correcciones
+- Máximo 3 correcciones por análisis
+- Si no puedes ver bien a la persona o el ejercicio, di que ajuste la cámara
+
+Responde SOLO con el JSON, sin texto adicional.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, sessionType } = await req.json();
+    const { messages, sessionType, analyzeImage, imageData, currentExercise } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Image analysis mode
+    if (analyzeImage && imageData) {
+      const analysisMessages = [
+        { role: "system", content: VIDEO_ANALYSIS_PROMPT },
+        { 
+          role: "user", 
+          content: [
+            { 
+              type: "text", 
+              text: currentExercise 
+                ? `Analiza esta imagen. El usuario está haciendo el ejercicio: ${currentExercise}` 
+                : "Analiza esta imagen y evalúa la postura del ejercicio que está haciendo la persona."
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageData
+              }
+            }
+          ]
+        }
+      ];
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: analysisMessages,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("AI gateway error:", response.status, errorText);
+        return new Response(JSON.stringify({ 
+          error: "Error en el análisis de imagen",
+          isCorrect: true,
+          message: "No se pudo analizar la imagen. Continúa con el ejercicio.",
+          corrections: []
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+      
+      // Parse JSON response
+      try {
+        // Extract JSON from response (might have markdown code blocks)
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const feedback = JSON.parse(jsonMatch[0]);
+          return new Response(JSON.stringify(feedback), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (parseError) {
+        console.error("Error parsing AI response:", parseError, content);
+      }
+
+      // Fallback response
+      return new Response(JSON.stringify({
+        isCorrect: true,
+        message: "Continúa con el ejercicio. Asegúrate de estar bien visible en la cámara.",
+        corrections: []
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Regular chat mode
     const systemPrompt = sessionType === "fisico" ? FISICO_SYSTEM_PROMPT : BIENESTAR_SYSTEM_PROMPT;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

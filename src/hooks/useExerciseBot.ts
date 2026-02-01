@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { VideoFeedback } from "@/components/ExerciseVideoCapture";
 
 export type Message = {
   id: string;
@@ -15,6 +16,9 @@ export function useExerciseBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState<SessionType | null>(null);
+  const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
+  const [videoFeedback, setVideoFeedback] = useState<VideoFeedback | null>(null);
+  const [currentExercise, setCurrentExercise] = useState<string | null>(null);
   const { toast } = useToast();
 
   const startSession = useCallback(async (type: SessionType) => {
@@ -50,11 +54,70 @@ export function useExerciseBot() {
     setSessionId(data.id);
     setSessionType(type);
     setMessages([]);
+    setVideoFeedback(null);
+    setCurrentExercise(null);
 
     // Send initial greeting
     await sendMessage("Hola, estoy listo para comenzar", data.id, type);
     return data.id;
   }, [toast]);
+
+  const analyzeVideoFrame = useCallback(async (imageData: string) => {
+    if (!sessionId || !sessionType) return;
+
+    setIsAnalyzingVideo(true);
+    setVideoFeedback(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exercise-bot`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            analyzeImage: true,
+            imageData,
+            currentExercise,
+            sessionType,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al analizar imagen");
+      }
+
+      const feedback: VideoFeedback = await response.json();
+      setVideoFeedback(feedback);
+
+      // Add feedback to chat as a system message if there are corrections
+      if (!feedback.isCorrect && feedback.corrections && feedback.corrections.length > 0) {
+        const correctionMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `📹 **Análisis de video:** ${feedback.message}\n\n${feedback.corrections
+            .map((c, i) => `${i + 1}. **${c.area}:** ${c.instruction}`)
+            .join("\n")}`,
+        };
+        setMessages((prev) => [...prev, correctionMessage]);
+      }
+
+    } catch (error) {
+      console.error("Error analyzing video:", error);
+      setVideoFeedback({
+        isCorrect: true,
+        message: "No se pudo analizar. Continúa con el ejercicio.",
+        corrections: [],
+      });
+    } finally {
+      setIsAnalyzingVideo(false);
+    }
+  }, [sessionId, sessionType, currentExercise]);
 
   const sendMessage = useCallback(async (
     content: string,
@@ -181,6 +244,12 @@ export function useExerciseBot() {
         }
       }
 
+      // Extract exercise name from assistant response
+      const exerciseMatch = assistantContent.match(/(?:ejercicio|Ejercicio)[:\s]*([^\n]+)/i);
+      if (exerciseMatch) {
+        setCurrentExercise(exerciseMatch[1].trim());
+      }
+
       // Save assistant message to database
       await supabase.from("exercise_messages").insert({
         session_id: activeSessionId,
@@ -217,6 +286,8 @@ export function useExerciseBot() {
     setSessionId(null);
     setSessionType(null);
     setMessages([]);
+    setVideoFeedback(null);
+    setCurrentExercise(null);
   }, [sessionId, messages]);
 
   return {
@@ -224,8 +295,12 @@ export function useExerciseBot() {
     isLoading,
     sessionId,
     sessionType,
+    isAnalyzingVideo,
+    videoFeedback,
+    currentExercise,
     startSession,
     sendMessage,
     endSession,
+    analyzeVideoFrame,
   };
 }
