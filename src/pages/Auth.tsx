@@ -235,7 +235,7 @@ const Auth = () => {
           </div>
           <CardTitle className="text-2xl">Plataforma De Evaluación De Salud en el Trabajo</CardTitle>
           <CardDescription>
-            Maslach Burnout Inventory (MBI)
+            PEST - Evaluación integral de bienestar laboral
           </CardDescription>
         </CardHeader>
         <CardContent>
