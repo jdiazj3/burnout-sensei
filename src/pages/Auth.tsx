@@ -233,7 +233,7 @@ const Auth = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary">
             <Brain className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Sistema de Evaluación Burnout</CardTitle>
+          <CardTitle className="text-2xl">Plataforma De Evaluación De Salud en el Trabajo</CardTitle>
           <CardDescription>
             Maslach Burnout Inventory (MBI)
           </CardDescription>
