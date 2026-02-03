@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Brain } from "lucide-react";
+import { Brain, LogIn, UserPlus, KeyRound } from "lucide-react";
 import { z } from "zod";
 
 interface Company {
@@ -241,9 +241,18 @@ const Auth = () => {
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="flex flex-col sm:flex-row h-auto gap-1 p-1 w-full">
-              <TabsTrigger value="login" className="w-full sm:flex-1 text-sm">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup" className="w-full sm:flex-1 text-sm">Registrarse</TabsTrigger>
-              <TabsTrigger value="reset" className="w-full sm:flex-1 text-sm">Recuperar Contraseña</TabsTrigger>
+              <TabsTrigger value="login" className="w-full sm:flex-1 text-sm gap-2">
+                <LogIn className="h-4 w-4" />
+                Iniciar Sesión
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="w-full sm:flex-1 text-sm gap-2">
+                <UserPlus className="h-4 w-4" />
+                Registrarse
+              </TabsTrigger>
+              <TabsTrigger value="reset" className="w-full sm:flex-1 text-sm gap-2">
+                <KeyRound className="h-4 w-4" />
+                Recuperar Contraseña
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
