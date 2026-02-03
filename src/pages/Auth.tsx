@@ -240,10 +240,10 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
-              <TabsTrigger value="reset">Olvidé mi Contraseña</TabsTrigger>
+            <TabsList className="flex flex-wrap h-auto gap-1 p-1 w-full">
+              <TabsTrigger value="login" className="flex-1 min-w-fit text-xs sm:text-sm">Iniciar Sesión</TabsTrigger>
+              <TabsTrigger value="signup" className="flex-1 min-w-fit text-xs sm:text-sm">Registrarse</TabsTrigger>
+              <TabsTrigger value="reset" className="flex-1 min-w-fit text-xs sm:text-sm whitespace-nowrap">Recuperar Contraseña</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
