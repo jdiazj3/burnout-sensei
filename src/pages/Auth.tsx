@@ -240,18 +240,21 @@ const Auth = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="flex flex-col sm:flex-row h-auto gap-1 p-1 w-full">
-              <TabsTrigger value="login" className="w-full sm:flex-1 text-sm gap-2">
-                <LogIn className="h-4 w-4" />
-                Iniciar Sesión
+            <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+              <TabsTrigger value="login" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1">
+                <LogIn className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Iniciar Sesión</span>
+                <span className="sm:hidden">Iniciar</span>
               </TabsTrigger>
-              <TabsTrigger value="signup" className="w-full sm:flex-1 text-sm gap-2">
-                <UserPlus className="h-4 w-4" />
-                Registrarse
+              <TabsTrigger value="signup" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1">
+                <UserPlus className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Registrarse</span>
+                <span className="sm:hidden">Registro</span>
               </TabsTrigger>
-              <TabsTrigger value="reset" className="w-full sm:flex-1 text-sm gap-2">
-                <KeyRound className="h-4 w-4" />
-                Recuperar Contraseña
+              <TabsTrigger value="reset" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2 px-1">
+                <KeyRound className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">Recuperar Contraseña</span>
+                <span className="sm:hidden">Recuperar</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="login">
