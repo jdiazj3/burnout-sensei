@@ -63,6 +63,7 @@ const Survey = () => {
   const [limitInfo, setLimitInfo] = useState<{
     availableSurveys: number;
     reason: string;
+    moduleType: string;
   } | null>(null);
   const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
 
@@ -89,8 +90,10 @@ const Survey = () => {
       const isAdmin = roles?.some(r => r.role === "company_admin");
       setIsCompanyAdmin(isAdmin || false);
 
-      // Verificar límites
-      const { data, error } = await supabase.functions.invoke("check-survey-limit");
+      // Verificar límites para módulo burnout
+      const { data, error } = await supabase.functions.invoke("check-survey-limit", {
+        body: { moduleType: "burnout" }
+      });
 
       if (error) {
         console.error("Error verificando límites:", error);
@@ -102,6 +105,7 @@ const Survey = () => {
       setLimitInfo({
         availableSurveys: data.availableSurveys,
         reason: data.reason,
+        moduleType: "burnout",
       });
 
     } catch (error) {
@@ -296,8 +300,8 @@ const Survey = () => {
               <Alert variant="destructive">
                 <AlertDescription>
                   {limitInfo?.reason === "trial_exhausted" 
-                    ? "Has agotado tus 5 encuestas de prueba gratuitas."
-                    : "Has utilizado todas tus encuestas disponibles."}
+                    ? "Has agotado tus 4 encuestas de burnout gratuitas."
+                    : "Has utilizado todas tus encuestas de burnout disponibles."}
                 </AlertDescription>
               </Alert>
 

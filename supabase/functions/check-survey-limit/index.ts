@@ -23,6 +23,15 @@ serve(async (req) => {
       });
     }
 
+    // Parse request body to get module type
+    let moduleType = 'burnout'; // default
+    try {
+      const body = await req.json();
+      moduleType = body.moduleType || 'burnout';
+    } catch {
+      // No body, use default
+    }
+
     // Extract token from Bearer format
     const token = authHeader.replace('Bearer ', '');
     console.log('Token extracted, length:', token.length);
@@ -51,6 +60,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
     // Obtener la empresa del usuario
     const { data: profile } = await supabaseClient
       .from('profiles')
@@ -87,34 +97,54 @@ serve(async (req) => {
       });
     }
 
-    // Determinar si puede crear una encuesta
+    // Determinar disponibilidad basada en el tipo de módulo
     let canCreate = false;
     let availableSurveys = 0;
     let reason = '';
 
     if (limits.is_trial_active) {
-      // En periodo de prueba
-      canCreate = limits.trial_surveys_remaining > 0;
-      availableSurveys = limits.trial_surveys_remaining;
+      // En periodo de prueba - verificar límite específico del módulo
+      switch (moduleType) {
+        case 'burnout':
+          availableSurveys = limits.trial_burnout_remaining || 0;
+          break;
+        case 'health':
+          availableSurveys = limits.trial_health_remaining || 0;
+          break;
+        case 'bot':
+          availableSurveys = limits.trial_bot_remaining || 0;
+          break;
+        default:
+          availableSurveys = limits.trial_burnout_remaining || 0;
+      }
+      canCreate = availableSurveys > 0;
       reason = canCreate ? 'trial' : 'trial_exhausted';
     } else {
-      // Periodo de pago
-      availableSurveys = limits.surveys_included - limits.surveys_used;
+      // Periodo de pago - verificar límite global
+      const totalUsed = (limits.burnout_used || 0) + (limits.health_used || 0) + (limits.bot_used || 0);
+      availableSurveys = (limits.surveys_included || 0) - totalUsed;
       canCreate = availableSurveys > 0;
       reason = canCreate ? 'paid' : 'limit_reached';
     }
 
-    console.log('Result:', { canCreate, availableSurveys, reason });
+    console.log('Result for module', moduleType, ':', { canCreate, availableSurveys, reason });
 
     return new Response(JSON.stringify({
       canCreate,
       availableSurveys,
       reason,
+      moduleType,
       limits: {
         surveys_included: limits.surveys_included,
         surveys_used: limits.surveys_used,
-        trial_surveys_remaining: limits.trial_surveys_remaining,
         is_trial_active: limits.is_trial_active,
+        // Límites por módulo
+        trial_burnout_remaining: limits.trial_burnout_remaining || 0,
+        trial_health_remaining: limits.trial_health_remaining || 0,
+        trial_bot_remaining: limits.trial_bot_remaining || 0,
+        burnout_used: limits.burnout_used || 0,
+        health_used: limits.health_used || 0,
+        bot_used: limits.bot_used || 0,
       }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

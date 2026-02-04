@@ -8,8 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Heart, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Secciones del cuestionario de salud
 const sections = [
@@ -188,6 +189,13 @@ const HealthSurvey = () => {
   const [currentSection, setCurrentSection] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkingLimits, setCheckingLimits] = useState(true);
+  const [canCreateSurvey, setCanCreateSurvey] = useState(false);
+  const [limitInfo, setLimitInfo] = useState<{
+    availableSurveys: number;
+    reason: string;
+  } | null>(null);
+  const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
   
   const [responses, setResponses] = useState<SurveyResponses>({
     gender: "",
@@ -210,16 +218,51 @@ const HealthSurvey = () => {
   });
 
   useEffect(() => {
-    checkAuth();
+    checkAuthAndLimits();
   }, []);
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
+  const checkAuthAndLimits = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      // Check if company admin
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const isAdmin = roles?.some(r => r.role === "company_admin");
+      setIsCompanyAdmin(isAdmin || false);
+
+      // Verificar límites para módulo health
+      const { data, error } = await supabase.functions.invoke("check-survey-limit", {
+        body: { moduleType: "health" }
+      });
+
+      if (error) {
+        console.error("Error verificando límites:", error);
+        toast.error("Error al verificar límites de encuestas");
+        setLoading(false);
+        setCheckingLimits(false);
+        return;
+      }
+
+      setCanCreateSurvey(data.canCreate);
+      setLimitInfo({
+        availableSurveys: data.availableSurveys,
+        reason: data.reason,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al verificar límites");
+    } finally {
+      setLoading(false);
+      setCheckingLimits(false);
     }
-    setLoading(false);
   };
 
   const progress = ((currentSection + 1) / sections.length) * 100;
@@ -739,10 +782,63 @@ const HealthSurvey = () => {
     }
   };
 
-  if (loading) {
+  if (loading || checkingLimits) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Verificando disponibilidad...</p>
+      </div>
+    );
+  }
+
+  if (!canCreateSurvey) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
+        <header className="border-b bg-card shadow-soft">
+          <div className="container mx-auto flex items-center gap-3 px-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+              <Heart className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-xl font-bold">Cuestionario de Salud Laboral</h1>
+          </div>
+        </header>
+        
+        <main className="container mx-auto max-w-3xl px-4 py-8">
+          <Card className="shadow-medium">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-6 w-6" />
+                Límite de Encuestas Alcanzado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {limitInfo?.reason === "trial_exhausted" 
+                    ? "Has agotado tus 4 encuestas de salud laboral gratuitas."
+                    : "Has utilizado todas tus encuestas de salud laboral disponibles."}
+                </AlertDescription>
+              </Alert>
+
+              <div className="text-center space-y-4 py-4">
+                <p className="text-muted-foreground">
+                  Encuestas disponibles: <strong>{limitInfo?.availableSurveys || 0}</strong>
+                </p>
+
+                {isCompanyAdmin && (
+                  <Button onClick={() => navigate("/payment-dashboard")} size="lg">
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Comprar Más Encuestas
+                  </Button>
+                )}
+
+                <Button variant="outline" onClick={() => navigate("/dashboard")} className="ml-2">
+                  Volver al Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
@@ -751,7 +847,7 @@ const HealthSurvey = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
       <header className="border-b bg-card shadow-soft">
         <div className="container mx-auto flex items-center gap-3 px-4 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
             <Heart className="h-6 w-6 text-white" />
           </div>
           <div>

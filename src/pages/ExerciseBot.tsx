@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Brain, Dumbbell, History, Trophy, Video } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Brain, Dumbbell, History, Trophy, Video, Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { useExerciseBot, SessionType } from "@/hooks/useExerciseBot";
 import { ExerciseBotChat } from "@/components/ExerciseBotChat";
 import { ExerciseVideoCapture } from "@/components/ExerciseVideoCapture";
@@ -38,10 +39,74 @@ const ExerciseBot = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const [checkingLimits, setCheckingLimits] = useState(true);
+  const [canCreateSession, setCanCreateSession] = useState(false);
+  const [limitInfo, setLimitInfo] = useState<{
+    availableSessions: number;
+    reason: string;
+  } | null>(null);
+  const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
 
   useEffect(() => {
-    loadSessionHistory();
+    checkLimitsAndLoadHistory();
   }, []);
+
+  const checkLimitsAndLoadHistory = async () => {
+    try {
+      setCheckingLimits(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      // Check if company admin
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const isAdmin = roles?.some(r => r.role === "company_admin");
+      setIsCompanyAdmin(isAdmin || false);
+
+      // Verificar límites para módulo bot
+      const { data, error } = await supabase.functions.invoke("check-survey-limit", {
+        body: { moduleType: "bot" }
+      });
+
+      if (error) {
+        console.error("Error verificando límites:", error);
+        toast({
+          title: "Error",
+          description: "Error al verificar límites de sesiones",
+          variant: "destructive",
+        });
+      } else {
+        setCanCreateSession(data.canCreate);
+        setLimitInfo({
+          availableSessions: data.availableSurveys,
+          reason: data.reason,
+        });
+      }
+
+      // Load session history
+      const { data: historyData } = await supabase
+        .from("exercise_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(10);
+
+      if (historyData) {
+        setSessionHistory(historyData);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setCheckingLimits(false);
+    }
+  };
 
   const loadSessionHistory = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -61,6 +126,14 @@ const ExerciseBot = () => {
   };
 
   const handleStartSession = async (type: SessionType) => {
+    if (!canCreateSession) {
+      toast({
+        title: "Límite alcanzado",
+        description: "Has alcanzado el límite de sesiones disponibles",
+        variant: "destructive",
+      });
+      return;
+    }
     await startSession(type);
   };
 
@@ -68,7 +141,7 @@ const ExerciseBot = () => {
     setIsVideoActive(false);
     setIsMonitoring(false);
     await endSession();
-    await loadSessionHistory();
+    await checkLimitsAndLoadHistory(); // Reload limits after session ends
     toast({
       title: "Sesión completada",
       description: "¡Excelente trabajo! Tu progreso ha sido guardado.",
@@ -90,6 +163,15 @@ const ExerciseBot = () => {
   };
 
   const stats = getTotalStats();
+
+  if (checkingLimits) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">Verificando disponibilidad...</p>
+      </div>
+    );
+  }
 
   if (sessionId && sessionType) {
     return (
@@ -203,6 +285,40 @@ const ExerciseBot = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Limit Warning */}
+        {!canCreateSession && (
+          <Card className="mb-8 border-destructive">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Límite de Sesiones Alcanzado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {limitInfo?.reason === "trial_exhausted" 
+                    ? "Has agotado tus 4 sesiones del bot gratuitas."
+                    : "Has utilizado todas tus sesiones del bot disponibles."}
+                </AlertDescription>
+              </Alert>
+
+              <div className="text-center space-y-4 py-2">
+                <p className="text-muted-foreground">
+                  Sesiones disponibles: <strong>{limitInfo?.availableSessions || 0}</strong>
+                </p>
+
+                {isCompanyAdmin && (
+                  <Button onClick={() => navigate("/payment-dashboard")} size="lg">
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Comprar Más Sesiones
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Session Type Selection */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">

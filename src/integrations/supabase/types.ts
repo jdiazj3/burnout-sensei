@@ -37,32 +37,50 @@ export type Database = {
       }
       company_survey_limits: {
         Row: {
+          bot_used: number
+          burnout_used: number
           company_id: string
           created_at: string
+          health_used: number
           id: string
           is_trial_active: boolean
           surveys_included: number
           surveys_used: number
+          trial_bot_remaining: number
+          trial_burnout_remaining: number
+          trial_health_remaining: number
           trial_surveys_remaining: number
           updated_at: string
         }
         Insert: {
+          bot_used?: number
+          burnout_used?: number
           company_id: string
           created_at?: string
+          health_used?: number
           id?: string
           is_trial_active?: boolean
           surveys_included?: number
           surveys_used?: number
+          trial_bot_remaining?: number
+          trial_burnout_remaining?: number
+          trial_health_remaining?: number
           trial_surveys_remaining?: number
           updated_at?: string
         }
         Update: {
+          bot_used?: number
+          burnout_used?: number
           company_id?: string
           created_at?: string
+          health_used?: number
           id?: string
           is_trial_active?: boolean
           surveys_included?: number
           surveys_used?: number
+          trial_bot_remaining?: number
+          trial_burnout_remaining?: number
+          trial_health_remaining?: number
           trial_surveys_remaining?: number
           updated_at?: string
         }
