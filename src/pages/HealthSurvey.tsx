@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import { Heart, ChevronLeft, ChevronRight, Loader2, AlertCircle, CreditCard } from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Loader2, AlertCircle, CreditCard, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -847,6 +847,15 @@ const HealthSurvey = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
       <header className="border-b bg-card shadow-soft">
         <div className="container mx-auto flex items-center gap-3 px-4 py-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+            className="mr-1"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Volver
+          </Button>
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
             <Heart className="h-6 w-6 text-white" />
           </div>
