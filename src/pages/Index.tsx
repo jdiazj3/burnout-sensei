@@ -24,8 +24,8 @@ const Index = () => {
       <div className="fixed inset-0 -z-10 bg-background/65" aria-hidden="true" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" aria-hidden="true" />
 
-      {/* Top Hero — uses object-fit image so nothing gets cropped awkwardly */}
-      <section className="relative w-full overflow-hidden h-[320px] md:h-[440px]">
+      {/* Top Hero — full viewport height so the image is never cropped */}
+      <section className="relative w-full overflow-hidden h-screen min-h-[500px]">
         <img
           src={heroBanner}
           alt=""
