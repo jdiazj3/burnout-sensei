@@ -10,7 +10,20 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
+    <div className="relative min-h-screen">
+      {/* Fixed page background image */}
+      <div
+        className="fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `url(${heroBanner})`,
+          filter: "blur(8px)",
+          transform: "scale(1.1)",
+        }}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 -z-10 bg-background/85" aria-hidden="true" />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" aria-hidden="true" />
+      <div className="hidden">
       {/* Top Banner with background image */}
       <section className="relative w-full overflow-hidden h-[280px] md:h-[380px]">
         <div
