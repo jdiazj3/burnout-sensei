@@ -23,18 +23,18 @@ const Index = () => {
       />
       <div className="fixed inset-0 -z-10 bg-background/85" aria-hidden="true" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" aria-hidden="true" />
-      <div className="hidden">
-      {/* Top Banner with background image */}
+
+      {/* Top Hero with sharper image */}
       <section className="relative w-full overflow-hidden h-[280px] md:h-[380px]">
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{
             backgroundImage: `url(${heroBanner})`,
-            filter: "blur(4px)",
+            filter: "blur(2px)",
           }}
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/30 to-background/90" aria-hidden="true" />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20" aria-hidden="true" />
 
         <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-center">
@@ -50,7 +50,7 @@ const Index = () => {
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="relative container mx-auto px-4 py-12">
         <div className="mx-auto max-w-5xl">
           {/* Hero CTA Section */}
           <div className="text-center mb-16">
