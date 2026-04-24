@@ -4,26 +4,43 @@ import { ClipboardCheck, Brain, HeartPulse, MessageCircle, BarChart3, Shield, Ac
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import senseiLogo from "@/assets/sensei-burnout-logo.png";
+import heroBanner from "@/assets/hero-banner.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
+      {/* Top Banner with background image */}
+      <section className="relative w-full overflow-hidden h-[280px] md:h-[380px]">
+        <div
+          className="absolute inset-0 bg-cover bg-center scale-105"
+          style={{
+            backgroundImage: `url(${heroBanner})`,
+            filter: "blur(4px)",
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20" aria-hidden="true" />
+
+        <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-center">
+          <img src={senseiLogo} alt="PEST Logo" className="h-20 md:h-24 w-auto mx-auto mb-4 drop-shadow-lg" />
+          <h1 className="mb-3 text-3xl md:text-5xl font-bold tracking-tight drop-shadow-md">
+            <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              PEST
+            </span>
+          </h1>
+          <p className="text-base md:text-lg text-foreground/90 max-w-2xl mx-auto font-medium drop-shadow">
+            Plataforma de Evaluación de Salud en el Trabajo
+          </p>
+        </div>
+      </section>
+
       <div className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-5xl">
-          {/* Hero Section */}
+          {/* Hero CTA Section */}
           <div className="text-center mb-16">
-            <div className="mx-auto mb-6">
-              <img src={senseiLogo} alt="Burnout Sensei Logo" className="h-28 w-auto mx-auto" />
-            </div>
-            
-            <h1 className="mb-4 text-4xl md:text-5xl font-bold tracking-tight">
-              <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Sensei Burnout
-              </span>
-            </h1>
-            
             <p className="mb-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Plataforma integral de evaluación y cuidado de la salud en el trabajo
             </p>
