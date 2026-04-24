@@ -16,26 +16,25 @@ const Index = () => {
         className="fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `url(${heroBanner})`,
-          filter: "blur(8px)",
-          transform: "scale(1.1)",
+          filter: "blur(6px)",
+          transform: "scale(1.08)",
         }}
         aria-hidden="true"
       />
-      <div className="fixed inset-0 -z-10 bg-background/85" aria-hidden="true" />
+      <div className="fixed inset-0 -z-10 bg-background/65" aria-hidden="true" />
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" aria-hidden="true" />
 
-      {/* Top Hero with sharper image */}
-      <section className="relative w-full overflow-hidden h-[280px] md:h-[380px]">
-        <div
-          className="absolute inset-0 bg-cover bg-center scale-105"
-          style={{
-            backgroundImage: `url(${heroBanner})`,
-            filter: "blur(2px)",
-          }}
+      {/* Top Hero — uses object-fit image so nothing gets cropped awkwardly */}
+      <section className="relative w-full overflow-hidden h-[320px] md:h-[440px]">
+        <img
+          src={heroBanner}
+          alt=""
           aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover object-[center_30%]"
+          style={{ filter: "blur(1.5px)" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/30 to-background/90" aria-hidden="true" />
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/10 to-background/80" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/15 via-transparent to-secondary/15" aria-hidden="true" />
 
         <div className="relative z-10 container mx-auto px-4 h-full flex flex-col items-center justify-center text-center">
           <img src={senseiLogo} alt="PEST Logo" className="h-20 md:h-24 w-auto mx-auto mb-4 drop-shadow-lg" />
