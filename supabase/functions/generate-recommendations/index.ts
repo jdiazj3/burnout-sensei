@@ -55,26 +55,29 @@ serve(async (req) => {
       });
     }
 
-    // Crear cliente con service role (sin pasar el auth header del usuario)
+    // Cliente con service role para operaciones de BD
     const supabaseClient = createClient(
       supabaseUrl,
       supabaseServiceKey
     );
 
-    // Extraer user ID del JWT manualmente
+    // Verificar firma del JWT y extraer user ID
     let userId: string;
-    try {
+    {
       const token = authHeader.replace('Bearer ', '');
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      userId = payload.sub;
-      console.log('✓ User ID extraído del JWT:', userId);
-    } catch (e) {
-      console.error('ERROR: No se pudo extraer user ID del JWT:', e);
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!);
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData?.user) {
+        console.error('ERROR: JWT inválido:', authError);
+        return new Response(JSON.stringify({ error: "Token inválido" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = authData.user.id;
+      console.log('✓ User ID verificado:', userId);
     }
+
 
     // Validar entrada del usuario
     const body = await req.json();
