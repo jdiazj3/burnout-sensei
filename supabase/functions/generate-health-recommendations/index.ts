@@ -70,7 +70,9 @@ Deno.serve(async (req) => {
       .from("health_surveys")
       .select("*")
       .eq("id", surveyId)
+      .eq("user_id", userId)
       .single();
+
 
     if (surveyError || !survey) {
       console.error("ERROR: Survey not found", surveyError);
