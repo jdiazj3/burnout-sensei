@@ -42,20 +42,23 @@ Deno.serve(async (req) => {
 
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Extract user ID from JWT
+    // Verify JWT signature and extract user ID
     let userId: string;
-    try {
+    {
       const token = authHeader.replace("Bearer ", "");
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      userId = payload.sub;
+      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
+      const { data: authData, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !authData?.user) {
+        console.error("ERROR: Invalid JWT", authError);
+        return new Response(JSON.stringify({ error: "Token inválido" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = authData.user.id;
       console.log("✓ User ID:", userId);
-    } catch {
-      console.error("ERROR: Invalid JWT");
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
     }
+
 
     const body = await req.json();
     const { surveyId } = body;
@@ -67,7 +70,9 @@ Deno.serve(async (req) => {
       .from("health_surveys")
       .select("*")
       .eq("id", surveyId)
+      .eq("user_id", userId)
       .single();
+
 
     if (surveyError || !survey) {
       console.error("ERROR: Survey not found", surveyError);
