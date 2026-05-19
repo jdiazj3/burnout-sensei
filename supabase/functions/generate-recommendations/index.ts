@@ -217,6 +217,21 @@ Las recomendaciones deben ser:
 
     // Guardar recomendaciones en la base de datos
     const { surveyId } = validation.data;
+
+    // Verificar que la encuesta pertenece al usuario autenticado
+    const { data: ownedSurvey, error: ownerErr } = await supabaseClient
+      .from('surveys')
+      .select('id')
+      .eq('id', surveyId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (ownerErr || !ownedSurvey) {
+      return new Response(JSON.stringify({ error: 'Encuesta no encontrada' }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { error: saveError } = await supabaseClient
       .from('survey_recommendations')
       .insert({
