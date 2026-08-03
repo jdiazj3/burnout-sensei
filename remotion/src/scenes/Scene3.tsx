@@ -8,7 +8,7 @@ export const Scene3: React.FC = () => {
   const drift = useDrift(8, 0.016);
   const sweep = interpolate(frame, [30, 130], [0, 100], { extrapolateRight: "clamp" });
   return (
-    <AbsoluteFill style={{ padding: "110px 110px 0", flexDirection: "row", gap: 70 }}>
+    <AbsoluteFill style={{ padding: "0 110px", flexDirection: "row", gap: 70, alignItems: "center" }}>
       <div style={{ flex: 1.05, paddingTop: 20 }}>
         <Reveal>
           <Kicker>Análisis con IA</Kicker>

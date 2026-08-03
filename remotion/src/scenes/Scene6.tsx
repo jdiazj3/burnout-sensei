@@ -23,7 +23,7 @@ const Dot: React.FC<{ i: number }> = ({ i }) => {
 };
 
 export const Scene6: React.FC = () => (
-  <AbsoluteFill style={{ padding: "100px 110px 0" }}>
+  <AbsoluteFill style={{ padding: "0 110px", justifyContent: "center" }}>
     <Reveal>
       <Kicker color={C.gold}>Seguimiento a escala</Kicker>
     </Reveal>

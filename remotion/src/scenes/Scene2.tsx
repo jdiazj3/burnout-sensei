@@ -12,7 +12,7 @@ const modules = [
 export const Scene2: React.FC = () => {
   const drift = useDrift(7, 0.018);
   return (
-    <AbsoluteFill style={{ padding: "110px 110px 0" }}>
+    <AbsoluteFill style={{ padding: "0 110px", justifyContent: "center" }}>
       <Reveal delay={0}>
         <Kicker>Evaluación</Kicker>
       </Reveal>

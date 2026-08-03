@@ -45,7 +45,7 @@ const roles = [
 export const Scene7: React.FC = () => {
   const drift = useDrift(6, 0.017);
   return (
-    <AbsoluteFill style={{ padding: "96px 110px 0" }}>
+    <AbsoluteFill style={{ padding: "0 110px", justifyContent: "center" }}>
       <Reveal>
         <Kicker>Tableros por rol</Kicker>
       </Reveal>

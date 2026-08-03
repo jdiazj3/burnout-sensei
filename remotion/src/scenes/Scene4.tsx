@@ -38,7 +38,7 @@ const Check: React.FC<{ delay: number }> = ({ delay }) => {
 };
 
 export const Scene4: React.FC = () => (
-  <AbsoluteFill style={{ padding: "108px 110px 0" }}>
+  <AbsoluteFill style={{ padding: "0 110px", justifyContent: "center" }}>
     <Reveal>
       <Kicker>Intervención</Kicker>
     </Reveal>

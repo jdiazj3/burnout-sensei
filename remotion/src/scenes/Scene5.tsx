@@ -35,7 +35,7 @@ export const Scene5: React.FC = () => {
   const pulse = 1 + Math.sin(frame * 0.09) * 0.03;
   const scan = interpolate(frame % 90, [0, 90], [0, 100]);
   return (
-    <AbsoluteFill style={{ padding: "104px 110px 0", flexDirection: "row", gap: 64 }}>
+    <AbsoluteFill style={{ padding: "0 110px", flexDirection: "row", gap: 64, alignItems: "center" }}>
       <div style={{ flex: 1, paddingTop: 14 }}>
         <Reveal>
           <Kicker color={C.gold}>Sensei · Bot de apoyo</Kicker>
