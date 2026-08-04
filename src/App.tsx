@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import Demo from "./pages/Demo";
 import Dashboard from "./pages/Dashboard";
 import Survey from "./pages/Survey";
 import HealthSurvey from "./pages/HealthSurvey";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/demo" element={<Demo />} />
           <Route
             path="/dashboard"
             element={
