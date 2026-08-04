@@ -123,8 +123,8 @@ const Stat = ({
 }) => (
   <Card>
     <CardContent className="flex items-center gap-4 pt-6">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-${tone}/10`}>
-        <Icon className={`h-5 w-5 text-${tone}`} />
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
+        <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
         <p className="truncate text-sm text-muted-foreground">{title}</p>
@@ -168,7 +168,7 @@ const UserView = () => (
               <Line type="monotone" dataKey="realizacion" name="Realización" stroke="hsl(var(--secondary))" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       <Card>
