@@ -65,6 +65,9 @@ const Index = () => {
               <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-lg">
                 Iniciar Sesión
               </Button>
+              <Button size="lg" variant="secondary" onClick={() => navigate("/demo")} className="text-lg">
+                Ver demo interactiva
+              </Button>
             </div>
           </div>
 
