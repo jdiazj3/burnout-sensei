@@ -108,6 +108,13 @@ const roles = [
   },
 ] as const;
 
+const toneClasses: Record<string, string> = {
+  primary: "bg-primary/10 text-primary",
+  secondary: "bg-secondary/10 text-secondary",
+  warning: "bg-warning/10 text-warning",
+  destructive: "bg-destructive/10 text-destructive",
+};
+
 const Stat = ({
   title,
   value,
